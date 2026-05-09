@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { TrendingUp, TrendingDown, Euro, Receipt, Plus, X, Trash2, FileText } from 'lucide-react'
+import { TrendingUp, TrendingDown, Euro, Receipt, Plus, X, Trash2, FileText, CheckCircle2, Circle, Settings } from 'lucide-react'
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Legend } from 'recharts'
 import { transakcije as initialTranz, mesecniPodaci, apartmani, rezervacije } from '../data/mockData'
 import { generateReport } from '../utils/generateReport'
@@ -18,12 +18,118 @@ function CustomTooltip({ active, payload, label }) {
   )
 }
 
+const MESECI_NAZIVI = ['Januar','Februar','Mart','April','Maj','Jun','Jul','Avgust','Septembar','Oktobar','Novembar','Decembar']
+
+function noći(dolazak, odlazak) {
+  return Math.max(1, Math.round((new Date(odlazak) - new Date(dolazak)) / 86400000))
+}
+
+function BtTab({ rezervacije, apartmani }) {
+  const [stopa, setStopa] = useState(150)
+  const [editStopa, setEditStopa] = useState(false)
+  const [placeni, setPlaceni] = useState({})
+
+  const aktivne = rezervacije.filter(r => r.status !== 'otkazano')
+
+  const poMesecima = aktivne.reduce((acc, r) => {
+    const kljuc = r.dolazak.slice(0, 7)
+    if (!acc[kljuc]) acc[kljuc] = []
+    acc[kljuc].push(r)
+    return acc
+  }, {})
+
+  const meseci = Object.keys(poMesecima).sort().reverse()
+  const ukupnoNaplaceno = meseci.filter(m => placeni[m]).reduce((s, m) =>
+    s + poMesecima[m].reduce((ms, r) => ms + noći(r.dolazak, r.odlazak) * (r.brGostiju || 1) * stopa, 0), 0)
+  const ukupnoNeCekanje = meseci.filter(m => !placeni[m]).reduce((s, m) =>
+    s + poMesecima[m].reduce((ms, r) => ms + noći(r.dolazak, r.odlazak) * (r.brGostiju || 1) * stopa, 0), 0)
+
+  return (
+    <div className="space-y-4">
+      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+        <div className="bg-white dark:bg-slate-800 rounded-2xl p-4 shadow-sm border border-slate-100 dark:border-slate-700">
+          <p className="text-xs text-slate-400 mb-1">Za uplatu</p>
+          <p className="text-xl font-bold text-red-500">{ukupnoNeCekanje.toLocaleString()} RSD</p>
+        </div>
+        <div className="bg-white dark:bg-slate-800 rounded-2xl p-4 shadow-sm border border-slate-100 dark:border-slate-700">
+          <p className="text-xs text-slate-400 mb-1">Uplaćeno</p>
+          <p className="text-xl font-bold text-emerald-500">{ukupnoNaplaceno.toLocaleString()} RSD</p>
+        </div>
+        <div className="bg-white dark:bg-slate-800 rounded-2xl p-4 shadow-sm border border-slate-100 dark:border-slate-700 col-span-2 sm:col-span-1">
+          <p className="text-xs text-slate-400 mb-1">Stopa po osobi/noći</p>
+          {editStopa ? (
+            <div className="flex items-center gap-2">
+              <input type="number" value={stopa} onChange={e => setStopa(Number(e.target.value))}
+                className="w-24 px-2 py-1 text-sm border border-teal-400 rounded-lg outline-none bg-transparent dark:text-white" autoFocus />
+              <span className="text-xs text-slate-400">RSD</span>
+              <button onClick={() => setEditStopa(false)} className="text-xs font-semibold" style={{ color: '#01696f' }}>OK</button>
+            </div>
+          ) : (
+            <div className="flex items-center gap-2">
+              <p className="text-xl font-bold text-slate-800 dark:text-white">{stopa} RSD</p>
+              <button onClick={() => setEditStopa(true)} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"><Settings size={14} /></button>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {meseci.map(m => {
+        const rezMesec = poMesecima[m]
+        const ukupno = rezMesec.reduce((s, r) => s + noći(r.dolazak, r.odlazak) * (r.brGostiju || 1) * stopa, 0)
+        const [god, mes] = m.split('-')
+        const jeplacen = !!placeni[m]
+
+        return (
+          <div key={m} className={`bg-white dark:bg-slate-800 rounded-2xl shadow-sm border transition-colors ${jeplacen ? 'border-emerald-200 dark:border-emerald-800' : 'border-slate-100 dark:border-slate-700'}`}>
+            <div className="flex items-center justify-between px-5 py-3.5 border-b border-slate-100 dark:border-slate-700">
+              <div>
+                <p className="font-semibold text-slate-800 dark:text-white">{MESECI_NAZIVI[Number(mes) - 1]} {god}</p>
+                <p className="text-xs text-slate-400">{rezMesec.length} rezervacija · {rezMesec.reduce((s, r) => s + noći(r.dolazak, r.odlazak) * (r.brGostiju || 1), 0)} osobonoći</p>
+              </div>
+              <div className="flex items-center gap-3">
+                <p className="font-bold text-slate-800 dark:text-white">{ukupno.toLocaleString()} RSD</p>
+                <button onClick={() => setPlaceni(p => ({ ...p, [m]: !p[m] }))}
+                  className={`flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors ${jeplacen ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400' : 'bg-slate-100 text-slate-500 dark:bg-slate-700 dark:text-slate-400 hover:bg-emerald-50 hover:text-emerald-600'}`}>
+                  {jeplacen ? <CheckCircle2 size={13} /> : <Circle size={13} />}
+                  {jeplacen ? 'Plaćeno' : 'Označi plaćeno'}
+                </button>
+              </div>
+            </div>
+            <div className="divide-y divide-slate-100 dark:divide-slate-700/50">
+              {rezMesec.map(r => {
+                const apt = apartmani.find(a => a.id === r.apartmanId)
+                const n = noći(r.dolazak, r.odlazak)
+                const g = r.brGostiju || 1
+                const t = n * g * stopa
+                return (
+                  <div key={r.id} className="flex items-center gap-4 px-5 py-3 text-sm">
+                    <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: apt?.boja }} />
+                    <div className="flex-1 min-w-0">
+                      <p className="font-medium text-slate-700 dark:text-slate-200 truncate">{r.gost}</p>
+                      <p className="text-xs text-slate-400">{apt?.naziv} · {r.dolazak} → {r.odlazak}</p>
+                    </div>
+                    <div className="text-right text-xs text-slate-400 whitespace-nowrap">
+                      <p>{n} noći × {g} os. × {stopa}</p>
+                    </div>
+                    <p className="font-semibold text-slate-700 dark:text-slate-200 whitespace-nowrap w-24 text-right">{t.toLocaleString()} RSD</p>
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+        )
+      })}
+    </div>
+  )
+}
+
 export default function Finansije() {
   const [tranz, setTranz] = useState(initialTranz)
   const [noviTrosak, setNoviTrosak] = useState(false)
   const [forma, setForma] = useState({ opis: '', iznos: '', kategorija: KATEGORIJE[0], apartmanId: '' })
   const [izvestaj, setIzvestaj] = useState(false)
   const [repForma, setRepForma] = useState({ mesec: new Date().getMonth().toString(), godina: '2026' })
+  const [tab, setTab] = useState('transakcije')
 
   function generiši() {
     generateReport({ mesec: repForma.mesec, godina: repForma.godina, transakcije: tranz, apartmani, rezervacije })
@@ -56,7 +162,19 @@ export default function Finansije() {
 
   return (
     <div className="p-4 md:p-6 max-w-7xl mx-auto space-y-5">
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+      <div className="flex gap-2">
+        {[['transakcije', 'Pregled'], ['boravisna', 'Boravišna taksa']].map(([k, v]) => (
+          <button key={k} onClick={() => setTab(k)}
+            className={`px-4 py-2 rounded-xl text-sm font-semibold transition-colors ${tab === k ? 'text-white' : 'bg-white dark:bg-slate-800 text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-slate-700'}`}
+            style={tab === k ? { backgroundColor: '#01696f' } : {}}>
+            {v}
+          </button>
+        ))}
+      </div>
+
+      {tab === 'boravisna' && <BtTab rezervacije={rezervacije} apartmani={apartmani} />}
+
+      {tab === 'transakcije' && <><div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         {[
           { naziv: 'Ukupan prihod', iznos: prihod, ikona: TrendingUp, boja: '#01696f', pozitivno: true },
           { naziv: 'Troškovi', iznos: troskovi, ikona: TrendingDown, boja: '#ef4444', pozitivno: false },
@@ -233,6 +351,7 @@ export default function Finansije() {
           </div>
         </div>
       )}
+      </>}
     </div>
   )
 }

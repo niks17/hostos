@@ -13,7 +13,7 @@ const statusBoje = {
 const statusNaziv = { potvrdjeno: 'Potvrđeno', zavrseno: 'Završeno', cekanje: 'Na čekanju', otkazano: 'Otkazano' }
 const FILTERI = ['sve', 'potvrdjeno', 'cekanje', 'zavrseno', 'otkazano']
 const filterNaziv = { sve: 'Sve', potvrdjeno: 'Potvrđene', cekanje: 'Na čekanju', zavrseno: 'Završene', otkazano: 'Otkazane' }
-const PRAZNA_FORMA = { gost: '', apartmanId: 1, dolazak: '', odlazak: '', izvor: 'Direktno', napomena: '', kontakt: '', status: 'potvrdjeno' }
+const PRAZNA_FORMA = { gost: '', apartmanId: 1, dolazak: '', odlazak: '', izvor: 'Direktno', napomena: '', kontakt: '', status: 'potvrdjeno', brGostiju: 2 }
 
 function RezModal({ forma, setForma, onSacuvaj, onOtkazi, naslov }) {
   return (
@@ -45,6 +45,10 @@ function RezModal({ forma, setForma, onSacuvaj, onOtkazi, naslov }) {
             </div>
           </div>
           <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="text-xs font-medium text-slate-500 dark:text-slate-400 mb-1 block">Broj gostiju</label>
+              <input type="number" min="1" max="20" value={forma.brGostiju} onChange={e => setForma({...forma, brGostiju: Number(e.target.value)})} className="w-full px-3 py-2 text-sm border border-slate-200 dark:border-slate-600 rounded-lg outline-none focus:border-teal-500 bg-transparent dark:text-white" />
+            </div>
             <div>
               <label className="text-xs font-medium text-slate-500 dark:text-slate-400 mb-1 block">Izvor</label>
               <select value={forma.izvor} onChange={e => setForma({...forma, izvor: e.target.value})} className="w-full px-3 py-2 text-sm border border-slate-200 dark:border-slate-600 rounded-lg outline-none focus:border-teal-500 bg-white dark:bg-slate-800 dark:text-white">
@@ -102,7 +106,7 @@ export default function Rezervacije({ syncedRez = [] }) {
 
   function otvoriIzmenu(r, e) {
     e.stopPropagation()
-    setForma({ gost: r.gost, apartmanId: r.apartmanId, dolazak: r.dolazak, odlazak: r.odlazak, izvor: r.izvor, napomena: r.napomena || '', kontakt: r.kontakt || '', status: r.status })
+    setForma({ gost: r.gost, apartmanId: r.apartmanId, dolazak: r.dolazak, odlazak: r.odlazak, izvor: r.izvor, napomena: r.napomena || '', kontakt: r.kontakt || '', status: r.status, brGostiju: r.brGostiju || 2 })
     setIzmenaId(r.id)
     setModal('izmena')
   }
@@ -114,7 +118,7 @@ export default function Rezervacije({ syncedRez = [] }) {
     const cena = nights * (apt?.cenaPoNoci || 0)
 
     if (modal === 'nova') {
-      setRez([{ id: Date.now(), apartmanId: Number(forma.apartmanId), gostId: null, gost: forma.gost, dolazak: forma.dolazak, odlazak: forma.odlazak, cena, status: forma.status, izvor: forma.izvor, kontakt: forma.kontakt, napomena: forma.napomena }, ...rez])
+      setRez([{ id: Date.now(), apartmanId: Number(forma.apartmanId), gostId: null, gost: forma.gost, dolazak: forma.dolazak, odlazak: forma.odlazak, cena, status: forma.status, izvor: forma.izvor, kontakt: forma.kontakt, napomena: forma.napomena, brGostiju: forma.brGostiju || 2 }, ...rez])
     } else {
       setRez(rez.map(r => r.id === izmenaId ? { ...r, ...forma, apartmanId: Number(forma.apartmanId), cena } : r))
     }

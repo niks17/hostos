@@ -16,16 +16,16 @@ export const gosti = [
 ]
 
 export const rezervacije = [
-  { id: 1, apartmanId: 1, gostId: 1, gost: 'Marko Petrović', dolazak: '2026-05-10', odlazak: '2026-05-14', cena: 340, status: 'potvrdjeno', izvor: 'Booking.com', kontakt: '+381 64 123 4567', napomena: 'Kasni dolazak oko 22h' },
-  { id: 2, apartmanId: 2, gostId: 2, gost: 'Jovana Stojanović', dolazak: '2026-05-12', odlazak: '2026-05-15', cena: 195, status: 'potvrdjeno', izvor: 'Airbnb', kontakt: '+381 63 987 6543', napomena: '' },
-  { id: 3, apartmanId: 3, gostId: 3, gost: 'Stefan Nikolić', dolazak: '2026-05-18', odlazak: '2026-05-25', cena: 840, status: 'potvrdjeno', izvor: 'Direktno', kontakt: '+381 65 456 7890', napomena: 'Žele roštilj opremu' },
-  { id: 4, apartmanId: 1, gostId: 4, gost: 'Ana Đorđević', dolazak: '2026-05-20', odlazak: '2026-05-23', cena: 255, status: 'potvrdjeno', izvor: 'Booking.com', kontakt: '+381 62 111 2222', napomena: '' },
-  { id: 5, apartmanId: 2, gostId: 5, gost: 'Nikola Jovanović', dolazak: '2026-05-09', odlazak: '2026-05-12', cena: 195, status: 'potvrdjeno', izvor: 'Airbnb', kontakt: '+381 64 333 4444', napomena: '' },
-  { id: 6, apartmanId: 3, gostId: 6, gost: 'Milica Popović', dolazak: '2026-04-20', odlazak: '2026-04-25', cena: 600, status: 'zavrseno', izvor: 'Direktno', kontakt: '+381 65 555 6666', napomena: '' },
-  { id: 7, apartmanId: 1, gostId: 7, gost: 'Ivan Lazović', dolazak: '2026-04-10', odlazak: '2026-04-14', cena: 340, status: 'zavrseno', izvor: 'Booking.com', kontakt: '+381 64 777 8888', napomena: '' },
-  { id: 8, apartmanId: 2, gostId: 8, gost: 'Katarina Đurić', dolazak: '2026-05-28', odlazak: '2026-06-02', cena: 325, status: 'cekanje', izvor: 'Airbnb', kontakt: '+381 62 999 0000', napomena: 'Čeka potvrdu plaćanja' },
-  { id: 9, apartmanId: 1, gostId: 1, gost: 'Marko Petrović', dolazak: '2026-06-10', odlazak: '2026-06-15', cena: 425, status: 'potvrdjeno', izvor: 'Direktno', kontakt: '+381 64 123 4567', napomena: 'Ponovni gost' },
-  { id: 10, apartmanId: 3, gostId: 4, gost: 'Ana Đorđević', dolazak: '2026-05-05', odlazak: '2026-05-09', cena: 480, status: 'otkazano', izvor: 'Booking.com', kontakt: '+381 62 111 2222', napomena: 'Otkazano 3 dana pre' },
+  { id: 1, apartmanId: 1, gostId: 1, gost: 'Marko Petrović', dolazak: '2026-05-10', odlazak: '2026-05-14', cena: 340, status: 'potvrdjeno', izvor: 'Booking.com', kontakt: '+381 64 123 4567', napomena: 'Kasni dolazak oko 22h', brGostiju: 2 },
+  { id: 2, apartmanId: 2, gostId: 2, gost: 'Jovana Stojanović', dolazak: '2026-05-12', odlazak: '2026-05-15', cena: 195, status: 'potvrdjeno', izvor: 'Airbnb', kontakt: '+381 63 987 6543', napomena: '', brGostiju: 2 },
+  { id: 3, apartmanId: 3, gostId: 3, gost: 'Stefan Nikolić', dolazak: '2026-05-18', odlazak: '2026-05-25', cena: 840, status: 'potvrdjeno', izvor: 'Direktno', kontakt: '+381 65 456 7890', napomena: 'Žele roštilj opremu', brGostiju: 4 },
+  { id: 4, apartmanId: 1, gostId: 4, gost: 'Ana Đorđević', dolazak: '2026-05-20', odlazak: '2026-05-23', cena: 255, status: 'potvrdjeno', izvor: 'Booking.com', kontakt: '+381 62 111 2222', napomena: '', brGostiju: 2 },
+  { id: 5, apartmanId: 2, gostId: 5, gost: 'Nikola Jovanović', dolazak: '2026-05-09', odlazak: '2026-05-12', cena: 195, status: 'potvrdjeno', izvor: 'Airbnb', kontakt: '+381 64 333 4444', napomena: '', brGostiju: 1 },
+  { id: 6, apartmanId: 3, gostId: 6, gost: 'Milica Popović', dolazak: '2026-04-20', odlazak: '2026-04-25', cena: 600, status: 'zavrseno', izvor: 'Direktno', kontakt: '+381 65 555 6666', napomena: '', brGostiju: 3 },
+  { id: 7, apartmanId: 1, gostId: 7, gost: 'Ivan Lazović', dolazak: '2026-04-10', odlazak: '2026-04-14', cena: 340, status: 'zavrseno', izvor: 'Booking.com', kontakt: '+381 64 777 8888', napomena: '', brGostiju: 2 },
+  { id: 8, apartmanId: 2, gostId: 8, gost: 'Katarina Đurić', dolazak: '2026-05-28', odlazak: '2026-06-02', cena: 325, status: 'cekanje', izvor: 'Airbnb', kontakt: '+381 62 999 0000', napomena: 'Čeka potvrdu plaćanja', brGostiju: 2 },
+  { id: 9, apartmanId: 1, gostId: 1, gost: 'Marko Petrović', dolazak: '2026-06-10', odlazak: '2026-06-15', cena: 425, status: 'potvrdjeno', izvor: 'Direktno', kontakt: '+381 64 123 4567', napomena: 'Ponovni gost', brGostiju: 2 },
+  { id: 10, apartmanId: 3, gostId: 4, gost: 'Ana Đorđević', dolazak: '2026-05-05', odlazak: '2026-05-09', cena: 480, status: 'otkazano', izvor: 'Booking.com', kontakt: '+381 62 111 2222', napomena: 'Otkazano 3 dana pre', brGostiju: 2 },
 ]
 
 export const mesecniPodaci = [
