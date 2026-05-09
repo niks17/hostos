@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { ChevronLeft, ChevronRight, Plus, X } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Plus, X, Pencil, Trash2 } from 'lucide-react'
 import { rezervacije as initialRez, apartmani } from '../data/mockData'
 
 const DANI = ['Pon', 'Uto', 'Sre', 'Čet', 'Pet', 'Sub', 'Ned']
@@ -69,7 +69,10 @@ export default function Kalendar() {
   const [rez, setRez] = useState(initialRez)
   const [odabranaRez, setOdabranaRez] = useState(null)
   const [novaRez, setNovaRez] = useState(false)
+  const [izmenaRez, setIzmenaRez] = useState(null)
+  const [brisanjeRez, setBrisanjeRez] = useState(null)
   const [forma, setForma] = useState({ gost: '', apartmanId: 1, dolazak: '', odlazak: '', izvor: 'Direktno', kontakt: '' })
+  const [izmenaForma, setIzmenaForma] = useState({})
 
   const weeks = buildWeeks(godina, mesec)
 
@@ -78,6 +81,28 @@ export default function Kalendar() {
   }
   function sledecMesec() {
     if (mesec === 11) { setGodina(g => g + 1); setMesec(0) } else setMesec(m => m + 1)
+  }
+
+  function otvoriIzmenu(r) {
+    setIzmenaForma({ gost: r.gost, apartmanId: r.apartmanId, dolazak: r.dolazak, odlazak: r.odlazak, izvor: r.izvor || 'Direktno', kontakt: r.kontakt || '', napomena: r.napomena || '', status: r.status })
+    setIzmenaRez(r)
+    setOdabranaRez(null)
+  }
+
+  function sacuvajIzmenu() {
+    if (!izmenaForma.gost || !izmenaForma.dolazak || !izmenaForma.odlazak) return
+    const apt = apartmani.find(a => a.id === Number(izmenaForma.apartmanId))
+    const nights = Math.max(1, Math.round((new Date(izmenaForma.odlazak) - new Date(izmenaForma.dolazak)) / 86400000))
+    setRez(rez.map(r => r.id === izmenaRez.id ? {
+      ...r, ...izmenaForma, apartmanId: Number(izmenaForma.apartmanId), cena: nights * (apt?.cenaPoNoci || 0)
+    } : r))
+    setIzmenaRez(null)
+  }
+
+  function obrisiRez(id) {
+    setRez(rez.filter(r => r.id !== id))
+    setBrisanjeRez(null)
+    setOdabranaRez(null)
   }
 
   function dodajRez() {
@@ -220,7 +245,11 @@ export default function Kalendar() {
                     <p className="text-xs text-slate-400">{apt?.naziv}</p>
                   </div>
                 </div>
-                <button onClick={() => setOdabranaRez(null)} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"><X size={20} /></button>
+                <div className="flex items-center gap-1">
+                  <button onClick={() => otvoriIzmenu(odabranaRez)} className="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-400 hover:text-teal-600 dark:hover:text-teal-400 transition-colors"><Pencil size={15} /></button>
+                  <button onClick={() => { setBrisanjeRez(odabranaRez); setOdabranaRez(null) }} className="p-2 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 text-slate-400 hover:text-red-500 transition-colors"><Trash2 size={15} /></button>
+                  <button onClick={() => setOdabranaRez(null)} className="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-400 transition-colors"><X size={15} /></button>
+                </div>
               </div>
               <div className="space-y-2 text-sm">
                 {[
@@ -297,6 +326,82 @@ export default function Kalendar() {
             <div className="flex gap-3 mt-5">
               <button onClick={() => setNovaRez(false)} className="flex-1 py-2 text-sm font-medium text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-600 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors">Otkaži</button>
               <button onClick={dodajRez} className="flex-1 py-2 text-sm font-semibold text-white rounded-xl hover:opacity-90 transition-opacity" style={{ backgroundColor: '#01696f' }}>Sačuvaj</button>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* Izmeni rezervaciju modal */}
+      {izmenaRez && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={() => setIzmenaRez(null)}>
+          <div className="bg-white dark:bg-slate-800 rounded-2xl p-6 w-full max-w-sm shadow-2xl animate-slide-up" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-5">
+              <h3 className="font-semibold text-slate-800 dark:text-white">Izmeni rezervaciju</h3>
+              <button onClick={() => setIzmenaRez(null)} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"><X size={20} /></button>
+            </div>
+            <div className="space-y-3">
+              {[
+                { label: 'Ime gosta', key: 'gost', placeholder: 'Ime i prezime' },
+                { label: 'Kontakt', key: 'kontakt', placeholder: '+381 ...' },
+              ].map(f => (
+                <div key={f.key}>
+                  <label className="text-xs font-medium text-slate-500 dark:text-slate-400 mb-1 block">{f.label}</label>
+                  <input value={izmenaForma[f.key] || ''} onChange={e => setIzmenaForma({...izmenaForma, [f.key]: e.target.value})} placeholder={f.placeholder}
+                    className="w-full px-3 py-2 text-sm border border-slate-200 dark:border-slate-600 rounded-lg outline-none focus:border-teal-500 bg-transparent dark:text-white" />
+                </div>
+              ))}
+              <div>
+                <label className="text-xs font-medium text-slate-500 dark:text-slate-400 mb-1 block">Apartman</label>
+                <select value={izmenaForma.apartmanId} onChange={e => setIzmenaForma({...izmenaForma, apartmanId: e.target.value})}
+                  className="w-full px-3 py-2 text-sm border border-slate-200 dark:border-slate-600 rounded-lg outline-none focus:border-teal-500 bg-white dark:bg-slate-800 dark:text-white">
+                  {apartmani.map(a => <option key={a.id} value={a.id}>{a.naziv}</option>)}
+                </select>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs font-medium text-slate-500 dark:text-slate-400 mb-1 block">Dolazak</label>
+                  <input type="date" value={izmenaForma.dolazak} onChange={e => setIzmenaForma({...izmenaForma, dolazak: e.target.value})}
+                    className="w-full px-3 py-2 text-sm border border-slate-200 dark:border-slate-600 rounded-lg outline-none focus:border-teal-500 bg-transparent dark:text-white" />
+                </div>
+                <div>
+                  <label className="text-xs font-medium text-slate-500 dark:text-slate-400 mb-1 block">Odlazak</label>
+                  <input type="date" value={izmenaForma.odlazak} onChange={e => setIzmenaForma({...izmenaForma, odlazak: e.target.value})}
+                    className="w-full px-3 py-2 text-sm border border-slate-200 dark:border-slate-600 rounded-lg outline-none focus:border-teal-500 bg-transparent dark:text-white" />
+                </div>
+              </div>
+              <div>
+                <label className="text-xs font-medium text-slate-500 dark:text-slate-400 mb-1 block">Izvor</label>
+                <select value={izmenaForma.izvor} onChange={e => setIzmenaForma({...izmenaForma, izvor: e.target.value})}
+                  className="w-full px-3 py-2 text-sm border border-slate-200 dark:border-slate-600 rounded-lg outline-none focus:border-teal-500 bg-white dark:bg-slate-800 dark:text-white">
+                  {['Direktno', 'Booking.com', 'Airbnb'].map(v => <option key={v}>{v}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="text-xs font-medium text-slate-500 dark:text-slate-400 mb-1 block">Status</label>
+                <select value={izmenaForma.status} onChange={e => setIzmenaForma({...izmenaForma, status: e.target.value})}
+                  className="w-full px-3 py-2 text-sm border border-slate-200 dark:border-slate-600 rounded-lg outline-none focus:border-teal-500 bg-white dark:bg-slate-800 dark:text-white">
+                  {[['potvrdjeno','Potvrđeno'],['cekanje','Na čekanju'],['zavrseno','Završeno'],['otkazano','Otkazano']].map(([v,l]) => <option key={v} value={v}>{l}</option>)}
+                </select>
+              </div>
+            </div>
+            <div className="flex gap-3 mt-5">
+              <button onClick={() => setIzmenaRez(null)} className="flex-1 py-2 text-sm font-medium text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-600 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors">Otkaži</button>
+              <button onClick={sacuvajIzmenu} className="flex-1 py-2 text-sm font-semibold text-white rounded-xl hover:opacity-90 transition-opacity" style={{ backgroundColor: '#01696f' }}>Sačuvaj</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Brisanje rezervacije */}
+      {brisanjeRez && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={() => setBrisanjeRez(null)}>
+          <div className="bg-white dark:bg-slate-800 rounded-2xl p-6 w-full max-w-sm shadow-2xl animate-slide-up" onClick={e => e.stopPropagation()}>
+            <h3 className="font-semibold text-slate-800 dark:text-white mb-2">Obriši rezervaciju?</h3>
+            <p className="text-sm text-slate-500 dark:text-slate-400 mb-5">
+              Ovo će trajno ukloniti rezervaciju za <span className="font-medium text-slate-700 dark:text-slate-200">{brisanjeRez.gost}</span>.
+            </p>
+            <div className="flex gap-3">
+              <button onClick={() => setBrisanjeRez(null)} className="flex-1 py-2 text-sm font-medium text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-600 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors">Otkaži</button>
+              <button onClick={() => obrisiRez(brisanjeRez.id)} className="flex-1 py-2 text-sm font-semibold text-white rounded-xl bg-red-500 hover:bg-red-600 transition-colors">Obriši</button>
             </div>
           </div>
         </div>
