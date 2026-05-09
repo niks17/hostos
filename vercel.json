@@ -1,6 +1,6 @@
 {
   "buildCommand": "npx pnpm run build",
-  "installCommand": "npx pnpm install --no-optional",
+  "installCommand": "npx pnpm install",
   "outputDirectory": "dist",
   "framework": "vite"
 }
