@@ -164,7 +164,7 @@ export default function Rezervacije({ syncedRez = [] }) {
               {filtrirane.map(r => {
                 const apt = apartmani.find(a => a.id === r.apartmanId)
                 return (
-                  <tr key={r.id} className="hover:bg-slate-50 dark:hover:bg-slate-700/30 transition-colors">
+                  <tr key={r.id} className="hover:bg-slate-50 dark:hover:bg-slate-700/30 transition-colors group">
                     <td className="px-4 py-3 font-medium text-slate-700 dark:text-slate-200 whitespace-nowrap">{r.gost}</td>
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-2">
