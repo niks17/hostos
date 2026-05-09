@@ -1,0 +1,165 @@
+import React, { useState } from 'react'
+import { TrendingUp, TrendingDown, Euro, Receipt, Plus, X, Trash2 } from 'lucide-react'
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Legend } from 'recharts'
+import { transakcije as initialTranz, mesecniPodaci, apartmani } from '../data/mockData'
+
+const KATEGORIJE = ['Čišćenje', 'Komunalije', 'Popravka', 'Provizija', 'Boravišna taksa', 'Ostalo']
+
+function CustomTooltip({ active, payload, label }) {
+  if (!active || !payload?.length) return null
+  return (
+    <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-3 shadow-lg text-sm">
+      <p className="font-medium text-slate-700 dark:text-slate-200 mb-1">{label}</p>
+      {payload.map(p => (
+        <p key={p.dataKey} style={{ color: p.color }}>{p.name}: €{p.value.toLocaleString()}</p>
+      ))}
+    </div>
+  )
+}
+
+export default function Finansije() {
+  const [tranz, setTranz] = useState(initialTranz)
+  const [noviTrosak, setNoviTrosak] = useState(false)
+  const [forma, setForma] = useState({ opis: '', iznos: '', kategorija: KATEGORIJE[0], apartmanId: '' })
+
+  const prihod = tranz.filter(t => t.tip === 'prihod').reduce((s, t) => s + t.iznos, 0)
+  const troskovi = tranz.filter(t => t.tip === 'trosak').reduce((s, t) => s + Math.abs(t.iznos), 0)
+  const neto = prihod - troskovi
+
+  function dodajTrosak() {
+    if (!forma.opis || !forma.iznos) return
+    const novi = {
+      id: Date.now(),
+      datum: new Date().toISOString().split('T')[0],
+      opis: forma.opis,
+      iznos: -Math.abs(Number(forma.iznos)),
+      tip: 'trosak',
+      kategorija: forma.kategorija,
+      apartmanId: forma.apartmanId ? Number(forma.apartmanId) : null,
+    }
+    setTranz([novi, ...tranz])
+    setNoviTrosak(false)
+    setForma({ opis: '', iznos: '', kategorija: KATEGORIJE[0], apartmanId: '' })
+  }
+
+  function obrisi(id) {
+    setTranz(tranz.filter(t => t.id !== id))
+  }
+
+  return (
+    <div className="p-4 md:p-6 max-w-7xl mx-auto space-y-5">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        {[
+          { naziv: 'Ukupan prihod', iznos: prihod, ikona: TrendingUp, boja: '#01696f', pozitivno: true },
+          { naziv: 'Troškovi', iznos: troskovi, ikona: TrendingDown, boja: '#ef4444', pozitivno: false },
+          { naziv: 'Neto zarada', iznos: neto, ikona: Euro, boja: '#8b5cf6', pozitivno: neto >= 0 },
+          { naziv: 'Boravišna taksa', iznos: tranz.filter(t => t.kategorija === 'Boravišna taksa').reduce((s, t) => s + Math.abs(t.iznos), 0), ikona: Receipt, boja: '#f59e0b', pozitivno: false },
+        ].map(k => {
+          const Ik = k.ikona
+          return (
+            <div key={k.naziv} className="bg-white dark:bg-slate-800 rounded-2xl p-4 shadow-sm border border-slate-100 dark:border-slate-700 transition-colors">
+              <div className="w-9 h-9 rounded-xl flex items-center justify-center mb-3" style={{ backgroundColor: k.boja + '20' }}>
+                <Ik size={18} style={{ color: k.boja }} />
+              </div>
+              <p className="text-xl font-bold text-slate-800 dark:text-white">€{k.iznos.toLocaleString()}</p>
+              <p className="text-xs text-slate-400 dark:text-slate-500 mt-0.5">{k.naziv}</p>
+            </div>
+          )
+        })}
+      </div>
+
+      <div className="bg-white dark:bg-slate-800 rounded-2xl p-5 shadow-sm border border-slate-100 dark:border-slate-700 transition-colors">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="font-semibold text-slate-800 dark:text-white">Prihodi vs Troškovi</h2>
+          <span className="text-xs text-slate-400">Po mesecima</span>
+        </div>
+        <ResponsiveContainer width="100%" height={220}>
+          <BarChart data={mesecniPodaci} barGap={4}>
+            <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" vertical={false} />
+            <XAxis dataKey="mesec" tick={{ fontSize: 12, fill: '#94a3b8' }} axisLine={false} tickLine={false} />
+            <YAxis tick={{ fontSize: 12, fill: '#94a3b8' }} axisLine={false} tickLine={false} width={44} tickFormatter={v => `€${v}`} />
+            <Tooltip content={<CustomTooltip />} />
+            <Legend formatter={v => <span style={{ fontSize: 12, color: '#94a3b8' }}>{v}</span>} />
+            <Bar dataKey="prihod" name="Prihod" fill="#01696f" radius={[4, 4, 0, 0]} />
+            <Bar dataKey="troskovi" name="Troškovi" fill="#ef4444" fillOpacity={0.7} radius={[4, 4, 0, 0]} />
+          </BarChart>
+        </ResponsiveContainer>
+      </div>
+
+      <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 transition-colors">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100 dark:border-slate-700">
+          <h2 className="font-semibold text-slate-800 dark:text-white">Transakcije</h2>
+          <button
+            onClick={() => setNoviTrosak(true)}
+            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-white rounded-lg hover:opacity-90 transition-opacity"
+            style={{ backgroundColor: '#01696f' }}
+          >
+            <Plus size={14} /> Novi trošak
+          </button>
+        </div>
+        <div className="divide-y divide-slate-100 dark:divide-slate-700">
+          {tranz.map(t => {
+            const pozitivno = t.tip === 'prihod'
+            return (
+              <div key={t.id} className="flex items-center gap-4 px-5 py-3.5 hover:bg-slate-50 dark:hover:bg-slate-700/30 transition-colors group">
+                <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${pozitivno ? 'bg-emerald-100 dark:bg-emerald-900/30' : 'bg-red-100 dark:bg-red-900/30'}`}>
+                  {pozitivno ? <TrendingUp size={15} className="text-emerald-600 dark:text-emerald-400" /> : <TrendingDown size={15} className="text-red-500" />}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-slate-700 dark:text-slate-200 truncate">{t.opis}</p>
+                  <p className="text-xs text-slate-400">{t.datum} · {t.kategorija}</p>
+                </div>
+                <div className="flex items-center gap-3">
+                  <span className={`font-semibold text-sm ${pozitivno ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-500'}`}>
+                    {pozitivno ? '+' : ''}€{Math.abs(t.iznos)}
+                  </span>
+                  <button onClick={() => obrisi(t.id)} className="opacity-0 group-hover:opacity-100 text-slate-300 hover:text-red-500 transition-all">
+                    <Trash2 size={15} />
+                  </button>
+                </div>
+              </div>
+            )
+          })}
+        </div>
+      </div>
+
+      {noviTrosak && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={() => setNoviTrosak(false)}>
+          <div className="bg-white dark:bg-slate-800 rounded-2xl p-6 w-full max-w-sm shadow-2xl animate-slide-up" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-5">
+              <h3 className="font-semibold text-slate-800 dark:text-white">Novi trošak</h3>
+              <button onClick={() => setNoviTrosak(false)} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"><X size={20} /></button>
+            </div>
+            <div className="space-y-3">
+              <div>
+                <label className="text-xs font-medium text-slate-500 dark:text-slate-400 mb-1 block">Opis</label>
+                <input value={forma.opis} onChange={e => setForma({...forma, opis: e.target.value})} placeholder="Npr. Popravka bojlera" className="w-full px-3 py-2 text-sm border border-slate-200 dark:border-slate-600 rounded-lg outline-none focus:border-teal-500 bg-transparent dark:text-white" />
+              </div>
+              <div>
+                <label className="text-xs font-medium text-slate-500 dark:text-slate-400 mb-1 block">Iznos (€)</label>
+                <input type="number" value={forma.iznos} onChange={e => setForma({...forma, iznos: e.target.value})} placeholder="0" className="w-full px-3 py-2 text-sm border border-slate-200 dark:border-slate-600 rounded-lg outline-none focus:border-teal-500 bg-transparent dark:text-white" />
+              </div>
+              <div>
+                <label className="text-xs font-medium text-slate-500 dark:text-slate-400 mb-1 block">Kategorija</label>
+                <select value={forma.kategorija} onChange={e => setForma({...forma, kategorija: e.target.value})} className="w-full px-3 py-2 text-sm border border-slate-200 dark:border-slate-600 rounded-lg outline-none focus:border-teal-500 bg-white dark:bg-slate-800 dark:text-white">
+                  {KATEGORIJE.map(k => <option key={k}>{k}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="text-xs font-medium text-slate-500 dark:text-slate-400 mb-1 block">Apartman (opciono)</label>
+                <select value={forma.apartmanId} onChange={e => setForma({...forma, apartmanId: e.target.value})} className="w-full px-3 py-2 text-sm border border-slate-200 dark:border-slate-600 rounded-lg outline-none focus:border-teal-500 bg-white dark:bg-slate-800 dark:text-white">
+                  <option value="">Svi apartmani</option>
+                  {apartmani.map(a => <option key={a.id} value={a.id}>{a.naziv}</option>)}
+                </select>
+              </div>
+            </div>
+            <div className="flex gap-3 mt-5">
+              <button onClick={() => setNoviTrosak(false)} className="flex-1 py-2 text-sm font-medium text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-600 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors">Otkaži</button>
+              <button onClick={dodajTrosak} className="flex-1 py-2 text-sm font-semibold text-white rounded-xl hover:opacity-90 transition-opacity" style={{ backgroundColor: '#01696f' }}>Dodaj</button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
