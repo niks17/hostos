@@ -1,7 +1,8 @@
 import React, { useState } from 'react'
-import { TrendingUp, TrendingDown, Euro, Receipt, Plus, X, Trash2 } from 'lucide-react'
+import { TrendingUp, TrendingDown, Euro, Receipt, Plus, X, Trash2, FileText } from 'lucide-react'
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Legend } from 'recharts'
-import { transakcije as initialTranz, mesecniPodaci, apartmani } from '../data/mockData'
+import { transakcije as initialTranz, mesecniPodaci, apartmani, rezervacije } from '../data/mockData'
+import { generateReport } from '../utils/generateReport'
 
 const KATEGORIJE = ['Čišćenje', 'Komunalije', 'Popravka', 'Provizija', 'Boravišna taksa', 'Ostalo']
 
@@ -21,6 +22,13 @@ export default function Finansije() {
   const [tranz, setTranz] = useState(initialTranz)
   const [noviTrosak, setNoviTrosak] = useState(false)
   const [forma, setForma] = useState({ opis: '', iznos: '', kategorija: KATEGORIJE[0], apartmanId: '' })
+  const [izvestaj, setIzvestaj] = useState(false)
+  const [repForma, setRepForma] = useState({ mesec: new Date().getMonth().toString(), godina: '2026' })
+
+  function generiši() {
+    generateReport({ mesec: repForma.mesec, godina: repForma.godina, transakcije: tranz, apartmani, rezervacije })
+    setIzvestaj(false)
+  }
 
   const prihod = tranz.filter(t => t.tip === 'prihod').reduce((s, t) => s + t.iznos, 0)
   const troskovi = tranz.filter(t => t.tip === 'trosak').reduce((s, t) => s + Math.abs(t.iznos), 0)
@@ -89,13 +97,21 @@ export default function Finansije() {
       <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 transition-colors">
         <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100 dark:border-slate-700">
           <h2 className="font-semibold text-slate-800 dark:text-white">Transakcije</h2>
-          <button
-            onClick={() => setNoviTrosak(true)}
-            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-white rounded-lg hover:opacity-90 transition-opacity"
-            style={{ backgroundColor: '#01696f' }}
-          >
-            <Plus size={14} /> Novi trošak
-          </button>
+          <div className="flex gap-2">
+            <button
+              onClick={() => setIzvestaj(true)}
+              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg border border-slate-200 dark:border-slate-600 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
+            >
+              <FileText size={14} /> Izveštaj
+            </button>
+            <button
+              onClick={() => setNoviTrosak(true)}
+              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-white rounded-lg hover:opacity-90 transition-opacity"
+              style={{ backgroundColor: '#01696f' }}
+            >
+              <Plus size={14} /> Novi trošak
+            </button>
+          </div>
         </div>
         <div className="divide-y divide-slate-100 dark:divide-slate-700">
           {tranz.map(t => {
@@ -122,6 +138,63 @@ export default function Finansije() {
           })}
         </div>
       </div>
+
+      {izvestaj && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={() => setIzvestaj(false)}>
+          <div className="bg-white dark:bg-slate-800 rounded-2xl p-6 w-full max-w-sm shadow-2xl animate-slide-up" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-5">
+              <div className="flex items-center gap-2">
+                <div className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ backgroundColor: '#01696f20' }}>
+                  <FileText size={18} style={{ color: '#01696f' }} />
+                </div>
+                <h3 className="font-semibold text-slate-800 dark:text-white">Generiši PDF izveštaj</h3>
+              </div>
+              <button onClick={() => setIzvestaj(false)} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"><X size={20} /></button>
+            </div>
+
+            <div className="space-y-3">
+              <div>
+                <label className="text-xs font-medium text-slate-500 dark:text-slate-400 mb-1 block">Period</label>
+                <select
+                  value={repForma.mesec}
+                  onChange={e => setRepForma({...repForma, mesec: e.target.value})}
+                  className="w-full px-3 py-2 text-sm border border-slate-200 dark:border-slate-600 rounded-lg outline-none focus:border-teal-500 bg-white dark:bg-slate-800 dark:text-white"
+                >
+                  <option value="sve">Cela godina</option>
+                  {['Januar','Februar','Mart','April','Maj','Jun','Jul','Avgust','Septembar','Oktobar','Novembar','Decembar'].map((m, i) => (
+                    <option key={i} value={i}>{m}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="text-xs font-medium text-slate-500 dark:text-slate-400 mb-1 block">Godina</label>
+                <select
+                  value={repForma.godina}
+                  onChange={e => setRepForma({...repForma, godina: e.target.value})}
+                  className="w-full px-3 py-2 text-sm border border-slate-200 dark:border-slate-600 rounded-lg outline-none focus:border-teal-500 bg-white dark:bg-slate-800 dark:text-white"
+                >
+                  {['2024','2025','2026','2027'].map(g => <option key={g}>{g}</option>)}
+                </select>
+              </div>
+            </div>
+
+            <div className="mt-4 p-3 bg-slate-50 dark:bg-slate-700/50 rounded-xl text-xs text-slate-500 dark:text-slate-400 space-y-1">
+              <p>📄 PDF će sadržati:</p>
+              <p className="pl-3">· KPI sažetak (prihod, troškovi, neto)</p>
+              <p className="pl-3">· Prihod po apartmanu</p>
+              <p className="pl-3">· Lista svih transakcija</p>
+              <p className="pl-3">· Boravišna taksa za period</p>
+            </div>
+
+            <div className="flex gap-3 mt-5">
+              <button onClick={() => setIzvestaj(false)} className="flex-1 py-2 text-sm font-medium text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-600 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors">Otkaži</button>
+              <button onClick={generiši} className="flex-1 py-2 text-sm font-semibold text-white rounded-xl hover:opacity-90 transition-opacity flex items-center justify-center gap-2" style={{ backgroundColor: '#01696f' }}>
+                <FileText size={14} /> Preuzmi PDF
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {noviTrosak && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={() => setNoviTrosak(false)}>
