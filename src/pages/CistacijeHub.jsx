@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { CheckSquare, Square, Clock, CheckCheck, AlertCircle, Home, Plus, X } from 'lucide-react'
+import { CheckSquare, Square, Clock, CheckCheck, AlertCircle, Home, Plus, X, Trash2, Pencil } from 'lucide-react'
 import { cistaceTasks as initialTasks, apartmani } from '../data/mockData'
 
 const statusBoje = {
@@ -14,6 +14,22 @@ export default function CistacijeHub() {
   const [taskovi, setTaskovi] = useState(initialTasks)
   const [noviTask, setNoviTask] = useState(false)
   const [forma, setForma] = useState({ apartmanId: 1, datum: '', vreme: '10:00' })
+  const [brisanje, setBrisanje] = useState(null)
+  const [izmena, setIzmena] = useState(null)
+  const [izmenaForma, setIzmenaForma] = useState({ apartmanId: 1, datum: '', vreme: '' })
+
+  function otvoriIzmenu(task) {
+    setIzmenaForma({ apartmanId: task.apartmanId, datum: task.datum, vreme: task.vreme })
+    setIzmena(task)
+  }
+
+  function sacuvajIzmenu() {
+    setTaskovi(taskovi.map(t => t.id === izmena.id
+      ? { ...t, apartmanId: Number(izmenaForma.apartmanId), datum: izmenaForma.datum, vreme: izmenaForma.vreme }
+      : t
+    ))
+    setIzmena(null)
+  }
 
   function toggleStavka(taskId, stavkaId) {
     setTaskovi(taskovi.map(t => {
@@ -94,9 +110,17 @@ export default function CistacijeHub() {
                     <p className="text-xs text-slate-400">{task.datum} · {task.vreme}</p>
                   </div>
                 </div>
-                <span className={`flex items-center gap-1 text-[10px] font-semibold px-2 py-1 rounded-full ${statusBoje[task.status]}`}>
-                  <Ikona size={11} /> {statusNaziv[task.status]}
-                </span>
+                <div className="flex items-center gap-1.5">
+                  <span className={`flex items-center gap-1 text-[10px] font-semibold px-2 py-1 rounded-full ${statusBoje[task.status]}`}>
+                    <Ikona size={11} /> {statusNaziv[task.status]}
+                  </span>
+                  <button onClick={() => otvoriIzmenu(task)} className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-400 hover:text-teal-600 dark:hover:text-teal-400 transition-colors">
+                    <Pencil size={13} />
+                  </button>
+                  <button onClick={() => setBrisanje(task)} className="p-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 text-slate-400 hover:text-red-500 transition-colors">
+                    <Trash2 size={13} />
+                  </button>
+                </div>
               </div>
 
               <div className="mb-3">
@@ -130,6 +154,52 @@ export default function CistacijeHub() {
           )
         })}
       </div>
+
+      {brisanje && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={() => setBrisanje(null)}>
+          <div className="bg-white dark:bg-slate-800 rounded-2xl p-6 w-full max-w-sm shadow-2xl animate-slide-up" onClick={e => e.stopPropagation()}>
+            <h3 className="font-semibold text-slate-800 dark:text-white mb-2">Obriši zadatak?</h3>
+            <p className="text-sm text-slate-500 dark:text-slate-400 mb-5">
+              {apartmani.find(a => a.id === brisanje.apartmanId)?.naziv} · {brisanje.datum} · {brisanje.vreme}
+            </p>
+            <div className="flex gap-3">
+              <button onClick={() => setBrisanje(null)} className="flex-1 py-2 text-sm font-medium text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-600 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors">Otkaži</button>
+              <button onClick={() => { setTaskovi(taskovi.filter(t => t.id !== brisanje.id)); setBrisanje(null) }} className="flex-1 py-2 text-sm font-semibold text-white rounded-xl bg-red-500 hover:bg-red-600 transition-colors">Obriši</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {izmena && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={() => setIzmena(null)}>
+          <div className="bg-white dark:bg-slate-800 rounded-2xl p-6 w-full max-w-sm shadow-2xl animate-slide-up" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-5">
+              <h3 className="font-semibold text-slate-800 dark:text-white">Izmeni zadatak</h3>
+              <button onClick={() => setIzmena(null)} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"><X size={20} /></button>
+            </div>
+            <div className="space-y-3">
+              <div>
+                <label className="text-xs font-medium text-slate-500 dark:text-slate-400 mb-1 block">Apartman</label>
+                <select value={izmenaForma.apartmanId} onChange={e => setIzmenaForma({...izmenaForma, apartmanId: e.target.value})} className="w-full px-3 py-2 text-sm border border-slate-200 dark:border-slate-600 rounded-lg outline-none focus:border-teal-500 bg-white dark:bg-slate-800 dark:text-white">
+                  {apartmani.map(a => <option key={a.id} value={a.id}>{a.naziv}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="text-xs font-medium text-slate-500 dark:text-slate-400 mb-1 block">Datum</label>
+                <input type="date" value={izmenaForma.datum} onChange={e => setIzmenaForma({...izmenaForma, datum: e.target.value})} className="w-full px-3 py-2 text-sm border border-slate-200 dark:border-slate-600 rounded-lg outline-none focus:border-teal-500 bg-transparent dark:text-white" />
+              </div>
+              <div>
+                <label className="text-xs font-medium text-slate-500 dark:text-slate-400 mb-1 block">Vreme</label>
+                <input type="time" value={izmenaForma.vreme} onChange={e => setIzmenaForma({...izmenaForma, vreme: e.target.value})} className="w-full px-3 py-2 text-sm border border-slate-200 dark:border-slate-600 rounded-lg outline-none focus:border-teal-500 bg-transparent dark:text-white" />
+              </div>
+            </div>
+            <div className="flex gap-3 mt-5">
+              <button onClick={() => setIzmena(null)} className="flex-1 py-2 text-sm font-medium text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-600 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors">Otkaži</button>
+              <button onClick={sacuvajIzmenu} className="flex-1 py-2 text-sm font-semibold text-white rounded-xl hover:opacity-90 transition-opacity" style={{ backgroundColor: '#01696f' }}>Sačuvaj</button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {noviTask && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={() => setNoviTask(false)}>
