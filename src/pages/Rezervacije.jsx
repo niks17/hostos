@@ -1,5 +1,7 @@
 import React, { useState } from 'react'
-import { Plus, X, Search, Home, Link, Pencil, Trash2 } from 'lucide-react'
+import { Plus, X, Search, Home, Link, Pencil, Trash2, Phone, Mail, MessageCircle } from 'lucide-react'
+
+function waUrl(tel) { return `https://wa.me/${tel.replace(/\D/g, '')}` }
 import { rezervacije as initialRez, apartmani } from '../data/mockData'
 
 const statusBoje = {
@@ -190,6 +192,16 @@ export default function Rezervacije({ syncedRez = [] }) {
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                        {r.kontakt && (
+                          <>
+                            <a href={waUrl(r.kontakt)} target="_blank" rel="noreferrer" onClick={e => e.stopPropagation()} className="text-slate-400 hover:text-green-500 transition-colors" title="WhatsApp">
+                              <MessageCircle size={14} />
+                            </a>
+                            <a href={`tel:${r.kontakt}`} onClick={e => e.stopPropagation()} className="text-slate-400 hover:text-blue-500 transition-colors" title="Pozovi">
+                              <Phone size={14} />
+                            </a>
+                          </>
+                        )}
                         <button onClick={e => otvoriIzmenu(r, e)} className="text-slate-400 hover:text-teal-600 dark:hover:text-teal-400 transition-colors" title="Izmeni">
                           <Pencil size={14} />
                         </button>

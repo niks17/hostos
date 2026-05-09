@@ -1,5 +1,7 @@
 import React, { useState } from 'react'
-import { Search, Phone, Mail, Star, X, Plus, MapPin, Pencil, Trash2 } from 'lucide-react'
+import { Search, Phone, Mail, Star, X, Plus, MapPin, Pencil, Trash2, MessageCircle } from 'lucide-react'
+
+function waUrl(tel) { return `https://wa.me/${tel.replace(/\D/g, '')}` }
 import { gosti as initialGosti, rezervacije, apartmani } from '../data/mockData'
 
 const PRAZNA_FORMA = { ime: '', email: '', telefon: '', drzava: 'Srbija', napomena: '' }
@@ -169,8 +171,23 @@ export default function Gosti() {
                 </div>
               </div>
               <div className="space-y-2">
-                <div className="flex items-center gap-2 text-sm text-slate-500 dark:text-slate-400"><Mail size={14} /> {izabrani.email}</div>
-                <div className="flex items-center gap-2 text-sm text-slate-500 dark:text-slate-400"><Phone size={14} /> {izabrani.telefon}</div>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2 text-sm text-slate-500 dark:text-slate-400"><Mail size={14} /> {izabrani.email}</div>
+                  <a href={`mailto:${izabrani.email}`} className="p-1.5 rounded-lg bg-slate-100 dark:bg-slate-700 hover:bg-blue-100 dark:hover:bg-blue-900/30 text-slate-500 hover:text-blue-600 transition-colors" title="Pošalji email">
+                    <Mail size={14} />
+                  </a>
+                </div>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2 text-sm text-slate-500 dark:text-slate-400"><Phone size={14} /> {izabrani.telefon}</div>
+                  <div className="flex gap-1.5">
+                    <a href={`tel:${izabrani.telefon}`} className="p-1.5 rounded-lg bg-slate-100 dark:bg-slate-700 hover:bg-blue-100 dark:hover:bg-blue-900/30 text-slate-500 hover:text-blue-600 transition-colors" title="Pozovi">
+                      <Phone size={14} />
+                    </a>
+                    <a href={waUrl(izabrani.telefon)} target="_blank" rel="noreferrer" className="p-1.5 rounded-lg bg-slate-100 dark:bg-slate-700 hover:bg-green-100 dark:hover:bg-green-900/30 text-slate-500 hover:text-green-600 transition-colors" title="WhatsApp">
+                      <MessageCircle size={14} />
+                    </a>
+                  </div>
+                </div>
                 <div className="flex items-center gap-2 text-sm text-slate-500 dark:text-slate-400"><MapPin size={14} /> {izabrani.drzava} · {izabrani.brBoravaka} boravaka</div>
                 {izabrani.napomena && <p className="text-sm text-slate-400 italic">"{izabrani.napomena}"</p>}
               </div>
