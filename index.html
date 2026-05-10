@@ -102,21 +102,26 @@
     <script type="module" src="/src/main.jsx"></script>
 
     <script>
-      // Hide splash once React has mounted (first paint)
-      document.addEventListener('DOMContentLoaded', function() {
-        var observer = new MutationObserver(function(mutations) {
-          var root = document.getElementById('root');
-          if (root && root.children.length > 0) {
-            var splash = document.getElementById('splash');
-            if (splash) {
-              splash.classList.add('hide');
-              setTimeout(function() { splash.remove(); }, 450);
-            }
-            observer.disconnect();
-          }
-        });
-        observer.observe(document.getElementById('root'), { childList: true, subtree: true });
+      function hideSplash() {
+        var splash = document.getElementById('splash');
+        if (splash && !splash.classList.contains('hide')) {
+          splash.classList.add('hide');
+          setTimeout(function() { if (splash.parentNode) splash.remove(); }, 450);
+        }
+      }
+
+      // Hide splash once React mounts
+      var observer = new MutationObserver(function() {
+        var root = document.getElementById('root');
+        if (root && root.children.length > 0) {
+          hideSplash();
+          observer.disconnect();
+        }
       });
+      observer.observe(document.getElementById('root'), { childList: true, subtree: true });
+
+      // Safety fallback: hide splash after 3s no matter what
+      setTimeout(hideSplash, 3000);
     </script>
   </body>
 </html>
