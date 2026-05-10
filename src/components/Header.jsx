@@ -377,6 +377,11 @@ export default function Header({ aktivnaStrana, tamniRezim, setTamniRezim, icalS
                       <p className="text-xs text-slate-400 dark:text-slate-500 leading-relaxed">
                         Nalepi iCal URL iz podešavanja svakog apartmana na Booking.com i Airbnb.
                       </p>
+                      {apartmani.length === 0 && (
+                        <div className="p-3 bg-slate-50 dark:bg-slate-700/50 rounded-xl text-xs text-slate-400 text-center">
+                          Najpre dodaj apartman u tabu <strong className="text-teal-600 dark:text-teal-400">Apartmani</strong>, pa će se ovde pojaviti polja za iCal URL.
+                        </div>
+                      )}
                       {syncError && (
                         <div className="flex items-start gap-2 p-3 bg-red-50 dark:bg-red-900/20 rounded-xl text-xs text-red-600 dark:text-red-400">
                           <AlertCircle size={14} className="flex-shrink-0 mt-0.5" /> {syncError}
