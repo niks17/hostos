@@ -1,14 +1,14 @@
 import React from 'react'
-import { LayoutDashboard, Calendar, BookOpen, Users, Sparkles, Wallet } from 'lucide-react'
+import { LayoutDashboard, Calendar, BookOpen, Users, Sparkles, Wallet, FileText } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 
 const SVE_STAVKE = [
   { id: 'dashboard',   naziv: 'Pregled',     ikona: LayoutDashboard, role: ['vlasnik'] },
   { id: 'kalendar',    naziv: 'Kalendar',    ikona: Calendar,        role: ['vlasnik', 'kooperant'] },
   { id: 'rezervacije', naziv: 'Rezervacije', ikona: BookOpen,        role: ['vlasnik', 'kooperant'] },
-  { id: 'gosti',       naziv: 'Gosti',       ikona: Users,           role: ['vlasnik', 'kooperant'] },
   { id: 'cistacije',   naziv: 'Čistačice',   ikona: Sparkles,        role: ['vlasnik', 'cistacica'] },
   { id: 'finansije',   naziv: 'Finansije',   ikona: Wallet,          role: ['vlasnik'] },
+  { id: 'izvestaji',   naziv: 'Izveštaji',   ikona: FileText,        role: ['vlasnik'] },
 ]
 
 export default function BottomNav({ aktivnaStrana, setAktivnaStrana }) {

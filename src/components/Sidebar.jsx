@@ -1,7 +1,7 @@
 import React from 'react'
 import {
   LayoutDashboard, Calendar, BookOpen, Users, Sparkles, Wallet,
-  Building2, LogOut, Sun, Moon,
+  Building2, LogOut, Sun, Moon, FileText,
 } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 
@@ -12,6 +12,7 @@ const SVE_STAVKE = [
   { id: 'gosti',       naziv: 'Gosti',         ikona: Users,           role: ['vlasnik', 'kooperant'] },
   { id: 'cistacije',   naziv: 'Čistačice Hub', ikona: Sparkles,        role: ['vlasnik', 'cistacica'] },
   { id: 'finansije',   naziv: 'Finansije',     ikona: Wallet,          role: ['vlasnik'] },
+  { id: 'izvestaji',   naziv: 'Izveštaji',     ikona: FileText,        role: ['vlasnik'] },
 ]
 
 function initials(ime) {

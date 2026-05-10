@@ -10,6 +10,7 @@ import Rezervacije from './pages/Rezervacije'
 import Gosti from './pages/Gosti'
 import CistacijeHub from './pages/CistacijeHub'
 import Finansije from './pages/Finansije'
+import Izvestaji from './pages/Izvestaji'
 import GuestPortal from './pages/GuestPortal'
 import { useIcalSync } from './hooks/useIcalSync'
 import { supabase, mapApartman } from './lib/supabase'
@@ -59,6 +60,7 @@ function AppInner() {
     gosti:       <Gosti />,
     cistacije:   <CistacijeHub apartmani={apartmani} />,
     finansije:   <Finansije apartmani={apartmani} />,
+    izvestaji:   <Izvestaji apartmani={apartmani} />,
   }
 
   return (
