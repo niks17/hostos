@@ -1,6 +1,7 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { ChevronLeft, ChevronRight, Plus, X, Pencil, Trash2 } from 'lucide-react'
-import { rezervacije as initialRez, apartmani } from '../data/mockData'
+import { supabase, mapRezervacija } from '../lib/supabase'
+import { useAuth } from '../context/AuthContext'
 
 const DANI = ['Pon', 'Uto', 'Sre', 'Čet', 'Pet', 'Sub', 'Ned']
 const MESECI = ['Januar', 'Februar', 'Mart', 'April', 'Maj', 'Jun', 'Jul', 'Avgust', 'Septembar', 'Oktobar', 'Novembar', 'Decembar']
@@ -62,17 +63,27 @@ const statusBadge = {
   otkazano: 'Otkazano',
 }
 
-export default function Kalendar() {
+export default function Kalendar({ syncedRez = [], apartmani = [] }) {
+  const { user } = useAuth()
   const today = new Date()
   const [godina, setGodina] = useState(today.getFullYear())
   const [mesec, setMesec] = useState(today.getMonth())
-  const [rez, setRez] = useState(initialRez)
+  const [rez, setRez] = useState([])
   const [odabranaRez, setOdabranaRez] = useState(null)
   const [novaRez, setNovaRez] = useState(false)
   const [izmenaRez, setIzmenaRez] = useState(null)
   const [brisanjeRez, setBrisanjeRez] = useState(null)
-  const [forma, setForma] = useState({ gost: '', apartmanId: 1, dolazak: '', odlazak: '', izvor: 'Direktno', kontakt: '' })
+  const [forma, setForma] = useState({ gost: '', apartmanId: '', dolazak: '', odlazak: '', izvor: 'Direktno', kontakt: '' })
   const [izmenaForma, setIzmenaForma] = useState({})
+
+  useEffect(() => { if (user) load() }, [user])
+
+  async function load() {
+    const { data } = await supabase.from('rezervacije').select('*')
+    setRez((data || []).map(mapRezervacija))
+  }
+
+  const sveRez = [...rez, ...syncedRez.filter(s => !rez.some(r => r.id === s.id))]
 
   const weeks = buildWeeks(godina, mesec)
 
@@ -89,34 +100,40 @@ export default function Kalendar() {
     setOdabranaRez(null)
   }
 
-  function sacuvajIzmenu() {
+  async function sacuvajIzmenu() {
     if (!izmenaForma.gost || !izmenaForma.dolazak || !izmenaForma.odlazak) return
     const apt = apartmani.find(a => a.id === Number(izmenaForma.apartmanId))
     const nights = Math.max(1, Math.round((new Date(izmenaForma.odlazak) - new Date(izmenaForma.dolazak)) / 86400000))
-    setRez(rez.map(r => r.id === izmenaRez.id ? {
-      ...r, ...izmenaForma, apartmanId: Number(izmenaForma.apartmanId), cena: nights * (apt?.cenaPoNoci || 0)
-    } : r))
+    await supabase.from('rezervacije').update({
+      gost: izmenaForma.gost, apartman_id: Number(izmenaForma.apartmanId),
+      dolazak: izmenaForma.dolazak, odlazak: izmenaForma.odlazak,
+      izvor: izmenaForma.izvor, kontakt: izmenaForma.kontakt,
+      status: izmenaForma.status, cena: nights * (apt?.cenaPoNoci || 0),
+    }).eq('id', izmenaRez.id)
+    await load()
     setIzmenaRez(null)
   }
 
-  function obrisiRez(id) {
+  async function obrisiRez(id) {
+    await supabase.from('rezervacije').delete().eq('id', id)
     setRez(rez.filter(r => r.id !== id))
     setBrisanjeRez(null)
     setOdabranaRez(null)
   }
 
-  function dodajRez() {
+  async function dodajRez() {
     if (!forma.gost || !forma.dolazak || !forma.odlazak) return
     const apt = apartmani.find(a => a.id === Number(forma.apartmanId))
     const nights = Math.max(1, Math.round((new Date(forma.odlazak) - new Date(forma.dolazak)) / 86400000))
-    setRez([{
-      id: Date.now(), apartmanId: Number(forma.apartmanId), gostId: null,
+    await supabase.from('rezervacije').insert([{
+      user_id: user.id, apartman_id: Number(forma.apartmanId),
       gost: forma.gost, dolazak: forma.dolazak, odlazak: forma.odlazak,
       cena: nights * (apt?.cenaPoNoci || 0), status: 'potvrdjeno',
       izvor: forma.izvor, kontakt: forma.kontakt, napomena: '',
-    }, ...rez])
+    }])
+    await load()
     setNovaRez(false)
-    setForma({ gost: '', apartmanId: 1, dolazak: '', odlazak: '', izvor: 'Direktno', kontakt: '' })
+    setForma({ gost: '', apartmanId: '', dolazak: '', odlazak: '', izvor: 'Direktno', kontakt: '' })
   }
 
   return (
@@ -153,7 +170,7 @@ export default function Kalendar() {
         {/* Weeks */}
         <div className="divide-y divide-slate-100 dark:divide-slate-700">
           {weeks.map((week, wi) => {
-            const weekRez = getRezForWeek(week, rez)
+            const weekRez = getRezForWeek(week, sveRez)
             // Group by apartment for stacking
             const aptRows = apartmani.map(a => ({
               apt: a,

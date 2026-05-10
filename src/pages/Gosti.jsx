@@ -1,10 +1,11 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { Search, Phone, Mail, Star, X, Plus, MapPin, Pencil, Trash2, MessageCircle } from 'lucide-react'
-
-function waUrl(tel) { return `https://wa.me/${tel.replace(/\D/g, '')}` }
-import { gosti as initialGosti, rezervacije, apartmani } from '../data/mockData'
+import { supabase, mapGost, mapRezervacija } from '../lib/supabase'
+import { useAuth } from '../context/AuthContext'
 
 const PRAZNA_FORMA = { ime: '', email: '', telefon: '', drzava: 'Srbija', napomena: '' }
+
+function waUrl(tel) { return `https://wa.me/${tel.replace(/\D/g, '')}` }
 
 function GostForma({ forma, setForma, onSacuvaj, onOtkazi, naslov }) {
   return (
@@ -43,46 +44,66 @@ function GostForma({ forma, setForma, onSacuvaj, onOtkazi, naslov }) {
 }
 
 export default function Gosti() {
-  const [gosti, setGosti] = useState(initialGosti)
+  const { user } = useAuth()
+  const [gosti, setGosti] = useState([])
+  const [rezervacije, setRezervacije] = useState([])
+  const [loading, setLoading] = useState(true)
   const [pretraga, setPretraga] = useState('')
   const [izabrani, setIzabrani] = useState(null)
-  const [modal, setModal] = useState(null) // null | 'novi' | 'izmena'
+  const [modal, setModal] = useState(null)
   const [forma, setForma] = useState(PRAZNA_FORMA)
   const [izmenaId, setIzmenaId] = useState(null)
   const [brisanje, setBrisanje] = useState(null)
 
+  useEffect(() => { if (user) load() }, [user])
+
+  async function load() {
+    const [{ data: g }, { data: r }] = await Promise.all([
+      supabase.from('gosti').select('*').order('created_at', { ascending: false }),
+      supabase.from('rezervacije').select('*'),
+    ])
+    setGosti((g || []).map(mapGost))
+    setRezervacije((r || []).map(mapRezervacija))
+    setLoading(false)
+  }
+
   const filtrirani = gosti.filter(g =>
     g.ime.toLowerCase().includes(pretraga.toLowerCase()) ||
-    g.email.toLowerCase().includes(pretraga.toLowerCase())
+    (g.email || '').toLowerCase().includes(pretraga.toLowerCase())
   )
 
   function otvoriNovog() { setForma(PRAZNA_FORMA); setIzmenaId(null); setModal('novi') }
 
   function otvoriIzmenu(g, e) {
     e.stopPropagation()
-    setForma({ ime: g.ime, email: g.email, telefon: g.telefon, drzava: g.drzava, napomena: g.napomena || '' })
+    setForma({ ime: g.ime, email: g.email || '', telefon: g.telefon || '', drzava: g.drzava || 'Srbija', napomena: g.napomena || '' })
     setIzmenaId(g.id)
     setIzabrani(null)
     setModal('izmena')
   }
 
-  function sacuvaj() {
+  async function sacuvaj() {
     if (!forma.ime) return
+    const payload = { ime: forma.ime, email: forma.email, telefon: forma.telefon, drzava: forma.drzava, napomena: forma.napomena }
     if (modal === 'novi') {
-      setGosti([{ id: Date.now(), ...forma, brBoravaka: 0, ocena: 5.0 }, ...gosti])
+      await supabase.from('gosti').insert([{ ...payload, user_id: user.id }])
     } else {
-      setGosti(gosti.map(g => g.id === izmenaId ? { ...g, ...forma } : g))
+      await supabase.from('gosti').update(payload).eq('id', izmenaId)
     }
+    await load()
     setModal(null)
   }
 
-  function obrisi(id) {
+  async function obrisi(id) {
+    await supabase.from('gosti').delete().eq('id', id)
     setGosti(gosti.filter(g => g.id !== id))
     setBrisanje(null)
     setIzabrani(null)
   }
 
   const gostRez = izabrani ? rezervacije.filter(r => r.gostId === izabrani.id) : []
+
+  if (loading) return <div className="flex items-center justify-center py-20"><div className="w-6 h-6 border-2 border-teal-600 border-t-transparent rounded-full animate-spin" /></div>
 
   return (
     <div className="p-4 md:p-6 max-w-7xl mx-auto space-y-4">
@@ -108,12 +129,8 @@ export default function Gosti() {
                 {g.ime.split(' ').map(n => n[0]).join('').slice(0, 2)}
               </div>
               <div className="flex items-center gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
-                <button onClick={e => otvoriIzmenu(g, e)} className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-400 hover:text-teal-600 dark:hover:text-teal-400 transition-colors">
-                  <Pencil size={13} />
-                </button>
-                <button onClick={e => { e.stopPropagation(); setBrisanje(g) }} className="p-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 text-slate-400 hover:text-red-500 transition-colors">
-                  <Trash2 size={13} />
-                </button>
+                <button onClick={e => otvoriIzmenu(g, e)} className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-400 hover:text-teal-600 dark:hover:text-teal-400 transition-colors"><Pencil size={13} /></button>
+                <button onClick={e => { e.stopPropagation(); setBrisanje(g) }} className="p-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 text-slate-400 hover:text-red-500 transition-colors"><Trash2 size={13} /></button>
               </div>
             </div>
             <p className="font-semibold text-slate-800 dark:text-white text-sm mb-0.5">{g.ime}</p>
@@ -121,12 +138,10 @@ export default function Gosti() {
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-1 text-amber-500">
                 <Star size={12} fill="currentColor" />
-                <span className="text-xs font-semibold text-slate-600 dark:text-slate-300">{g.ocena.toFixed(1)}</span>
+                <span className="text-xs font-semibold text-slate-600 dark:text-slate-300">{Number(g.ocena).toFixed(1)}</span>
               </div>
               <span className="text-xs text-slate-400">{g.brBoravaka} boravaka</span>
-              <div className="flex items-center gap-1 text-xs text-slate-400">
-                <MapPin size={11} /> {g.drzava}
-              </div>
+              <div className="flex items-center gap-1 text-xs text-slate-400"><MapPin size={11} /> {g.drzava}</div>
             </div>
             {g.napomena && <p className="mt-2 text-xs text-slate-400 dark:text-slate-500 italic truncate">"{g.napomena}"</p>}
           </div>
@@ -136,11 +151,10 @@ export default function Gosti() {
       {filtrirani.length === 0 && (
         <div className="text-center py-16 text-slate-400">
           <p className="text-4xl mb-3 opacity-30">👤</p>
-          <p>Nema gostiju</p>
+          <p>{pretraga ? 'Nema rezultata' : 'Nema gostiju — dodaj prvog'}</p>
         </div>
       )}
 
-      {/* Detalji gosta */}
       {izabrani && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={() => setIzabrani(null)}>
           <div className="bg-white dark:bg-slate-800 rounded-2xl w-full max-w-md shadow-2xl animate-slide-up overflow-hidden" onClick={e => e.stopPropagation()}>
@@ -154,38 +168,26 @@ export default function Gosti() {
                     <h3 className="font-bold text-slate-800 dark:text-white">{izabrani.ime}</h3>
                     <div className="flex items-center gap-1 text-amber-500 mt-0.5">
                       <Star size={13} fill="currentColor" />
-                      <span className="text-sm font-semibold text-slate-600 dark:text-slate-300">{izabrani.ocena.toFixed(1)}</span>
+                      <span className="text-sm font-semibold text-slate-600 dark:text-slate-300">{Number(izabrani.ocena).toFixed(1)}</span>
                     </div>
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
-                  <button onClick={e => otvoriIzmenu(izabrani, e)} className="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-400 hover:text-teal-600 dark:hover:text-teal-400 transition-colors">
-                    <Pencil size={16} />
-                  </button>
-                  <button onClick={() => setBrisanje(izabrani)} className="p-2 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 text-slate-400 hover:text-red-500 transition-colors">
-                    <Trash2 size={16} />
-                  </button>
-                  <button onClick={() => setIzabrani(null)} className="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-400 transition-colors">
-                    <X size={16} />
-                  </button>
+                  <button onClick={e => otvoriIzmenu(izabrani, e)} className="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-400 hover:text-teal-600 transition-colors"><Pencil size={16} /></button>
+                  <button onClick={() => setBrisanje(izabrani)} className="p-2 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 text-slate-400 hover:text-red-500 transition-colors"><Trash2 size={16} /></button>
+                  <button onClick={() => setIzabrani(null)} className="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-400 transition-colors"><X size={16} /></button>
                 </div>
               </div>
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2 text-sm text-slate-500 dark:text-slate-400"><Mail size={14} /> {izabrani.email}</div>
-                  <a href={`mailto:${izabrani.email}`} className="p-1.5 rounded-lg bg-slate-100 dark:bg-slate-700 hover:bg-blue-100 dark:hover:bg-blue-900/30 text-slate-500 hover:text-blue-600 transition-colors" title="Pošalji email">
-                    <Mail size={14} />
-                  </a>
+                  <a href={`mailto:${izabrani.email}`} className="p-1.5 rounded-lg bg-slate-100 dark:bg-slate-700 hover:bg-blue-100 dark:hover:bg-blue-900/30 text-slate-500 hover:text-blue-600 transition-colors"><Mail size={14} /></a>
                 </div>
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2 text-sm text-slate-500 dark:text-slate-400"><Phone size={14} /> {izabrani.telefon}</div>
                   <div className="flex gap-1.5">
-                    <a href={`tel:${izabrani.telefon}`} className="p-1.5 rounded-lg bg-slate-100 dark:bg-slate-700 hover:bg-blue-100 dark:hover:bg-blue-900/30 text-slate-500 hover:text-blue-600 transition-colors" title="Pozovi">
-                      <Phone size={14} />
-                    </a>
-                    <a href={waUrl(izabrani.telefon)} target="_blank" rel="noreferrer" className="p-1.5 rounded-lg bg-slate-100 dark:bg-slate-700 hover:bg-green-100 dark:hover:bg-green-900/30 text-slate-500 hover:text-green-600 transition-colors" title="WhatsApp">
-                      <MessageCircle size={14} />
-                    </a>
+                    <a href={`tel:${izabrani.telefon}`} className="p-1.5 rounded-lg bg-slate-100 dark:bg-slate-700 hover:bg-blue-100 dark:hover:bg-blue-900/30 text-slate-500 hover:text-blue-600 transition-colors"><Phone size={14} /></a>
+                    <a href={waUrl(izabrani.telefon || '')} target="_blank" rel="noreferrer" className="p-1.5 rounded-lg bg-slate-100 dark:bg-slate-700 hover:bg-green-100 dark:hover:bg-green-900/30 text-slate-500 hover:text-green-600 transition-colors"><MessageCircle size={14} /></a>
                   </div>
                 </div>
                 <div className="flex items-center gap-2 text-sm text-slate-500 dark:text-slate-400"><MapPin size={14} /> {izabrani.drzava} · {izabrani.brBoravaka} boravaka</div>
@@ -194,20 +196,17 @@ export default function Gosti() {
             </div>
             <div className="p-6">
               <h4 className="font-semibold text-slate-700 dark:text-slate-200 text-sm mb-3">Istorija boravaka</h4>
-              {gostRez.length === 0 ? (
-                <p className="text-sm text-slate-400">Nema evidentiranih boravaka</p>
-              ) : gostRez.map(r => {
-                const apt = apartmani.find(a => a.id === r.apartmanId)
-                return (
+              {gostRez.length === 0
+                ? <p className="text-sm text-slate-400">Nema evidentiranih boravaka</p>
+                : gostRez.map(r => (
                   <div key={r.id} className="flex items-center justify-between p-3 rounded-xl bg-slate-50 dark:bg-slate-700/50 text-sm mb-2">
                     <div>
-                      <p className="font-medium text-slate-700 dark:text-slate-200">{apt?.naziv}</p>
                       <p className="text-xs text-slate-400">{r.dolazak} → {r.odlazak}</p>
                     </div>
                     <span className="font-semibold text-slate-700 dark:text-slate-200">€{r.cena}</span>
                   </div>
-                )
-              })}
+                ))
+              }
             </div>
           </div>
         </div>
@@ -219,9 +218,7 @@ export default function Gosti() {
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={() => setBrisanje(null)}>
           <div className="bg-white dark:bg-slate-800 rounded-2xl p-6 w-full max-w-sm shadow-2xl animate-slide-up" onClick={e => e.stopPropagation()}>
             <h3 className="font-semibold text-slate-800 dark:text-white mb-2">Obriši gosta?</h3>
-            <p className="text-sm text-slate-500 dark:text-slate-400 mb-5">
-              Ovo će trajno ukloniti <span className="font-medium text-slate-700 dark:text-slate-200">{brisanje.ime}</span> iz liste gostiju.
-            </p>
+            <p className="text-sm text-slate-500 dark:text-slate-400 mb-5">Ovo će trajno ukloniti <span className="font-medium text-slate-700 dark:text-slate-200">{brisanje.ime}</span>.</p>
             <div className="flex gap-3">
               <button onClick={() => setBrisanje(null)} className="flex-1 py-2 text-sm font-medium text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-600 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors">Otkaži</button>
               <button onClick={() => obrisi(brisanje.id)} className="flex-1 py-2 text-sm font-semibold text-white rounded-xl bg-red-500 hover:bg-red-600 transition-colors">Obriši</button>

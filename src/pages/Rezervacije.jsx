@@ -1,8 +1,7 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { Plus, X, Search, Home, Link, Pencil, Trash2, Phone, Mail, MessageCircle } from 'lucide-react'
-
-function waUrl(tel) { return `https://wa.me/${tel.replace(/\D/g, '')}` }
-import { rezervacije as initialRez, apartmani } from '../data/mockData'
+import { supabase, mapRezervacija } from '../lib/supabase'
+import { useAuth } from '../context/AuthContext'
 
 const statusBoje = {
   potvrdjeno: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400',
@@ -13,9 +12,11 @@ const statusBoje = {
 const statusNaziv = { potvrdjeno: 'Potvrđeno', zavrseno: 'Završeno', cekanje: 'Na čekanju', otkazano: 'Otkazano' }
 const FILTERI = ['sve', 'potvrdjeno', 'cekanje', 'zavrseno', 'otkazano']
 const filterNaziv = { sve: 'Sve', potvrdjeno: 'Potvrđene', cekanje: 'Na čekanju', zavrseno: 'Završene', otkazano: 'Otkazane' }
-const PRAZNA_FORMA = { gost: '', apartmanId: 1, dolazak: '', odlazak: '', izvor: 'Direktno', napomena: '', kontakt: '', status: 'potvrdjeno', brGostiju: 2 }
+const PRAZNA_FORMA = { gost: '', apartmanId: '', dolazak: '', odlazak: '', izvor: 'Direktno', napomena: '', kontakt: '', status: 'potvrdjeno', brGostiju: 2 }
 
-function RezModal({ forma, setForma, onSacuvaj, onOtkazi, naslov }) {
+function waUrl(tel) { return `https://wa.me/${tel.replace(/\D/g, '')}` }
+
+function RezModal({ forma, setForma, onSacuvaj, onOtkazi, naslov, apartmani }) {
   return (
     <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={onOtkazi}>
       <div className="bg-white dark:bg-slate-800 rounded-2xl p-6 w-full max-w-md shadow-2xl animate-slide-up" onClick={e => e.stopPropagation()}>
@@ -31,6 +32,7 @@ function RezModal({ forma, setForma, onSacuvaj, onOtkazi, naslov }) {
           <div>
             <label className="text-xs font-medium text-slate-500 dark:text-slate-400 mb-1 block">Apartman</label>
             <select value={forma.apartmanId} onChange={e => setForma({...forma, apartmanId: e.target.value})} className="w-full px-3 py-2 text-sm border border-slate-200 dark:border-slate-600 rounded-lg outline-none focus:border-teal-500 bg-white dark:bg-slate-800 dark:text-white">
+              <option value="">Odaberi apartman</option>
               {apartmani.map(a => <option key={a.id} value={a.id}>{a.naziv}</option>)}
             </select>
           </div>
@@ -80,17 +82,26 @@ function RezModal({ forma, setForma, onSacuvaj, onOtkazi, naslov }) {
   )
 }
 
-export default function Rezervacije({ syncedRez = [] }) {
-  const [rez, setRez] = useState(initialRez)
+export default function Rezervacije({ syncedRez = [], apartmani = [] }) {
+  const { user } = useAuth()
+  const [rez, setRez] = useState([])
+  const [loading, setLoading] = useState(true)
   const [filter, setFilter] = useState('sve')
   const [pretraga, setPretraga] = useState('')
-  const [modal, setModal] = useState(null) // null | 'nova' | 'izmena'
-  const [forma, setForma] = useState(PRAZNA_FORMA)
+  const [modal, setModal] = useState(null)
+  const [forma, setForma] = useState({ ...PRAZNA_FORMA, apartmanId: apartmani[0]?.id || '' })
   const [izmenaId, setIzmenaId] = useState(null)
   const [brisanje, setBrisanje] = useState(null)
 
-  const sveRez = [...rez, ...syncedRez.filter(s => !rez.some(r => r.id === s.id))]
+  useEffect(() => { if (user) load() }, [user])
 
+  async function load() {
+    const { data } = await supabase.from('rezervacije').select('*').order('dolazak', { ascending: false })
+    setRez((data || []).map(mapRezervacija))
+    setLoading(false)
+  }
+
+  const sveRez = [...rez, ...syncedRez.filter(s => !rez.some(r => r.id === s.id))]
   const filtrirane = sveRez.filter(r => {
     const matchFilter = filter === 'sve' || r.status === filter
     const matchSearch = r.gost.toLowerCase().includes(pretraga.toLowerCase()) ||
@@ -99,8 +110,7 @@ export default function Rezervacije({ syncedRez = [] }) {
   })
 
   function otvoriNovu() {
-    setForma(PRAZNA_FORMA)
-    setIzmenaId(null)
+    setForma({ ...PRAZNA_FORMA, apartmanId: apartmani[0]?.id || '' })
     setModal('nova')
   }
 
@@ -111,24 +121,32 @@ export default function Rezervacije({ syncedRez = [] }) {
     setModal('izmena')
   }
 
-  function sacuvaj() {
+  async function sacuvaj() {
     if (!forma.gost || !forma.dolazak || !forma.odlazak) return
     const apt = apartmani.find(a => a.id === Number(forma.apartmanId))
     const nights = Math.max(1, Math.round((new Date(forma.odlazak) - new Date(forma.dolazak)) / 86400000))
     const cena = nights * (apt?.cenaPoNoci || 0)
-
-    if (modal === 'nova') {
-      setRez([{ id: Date.now(), apartmanId: Number(forma.apartmanId), gostId: null, gost: forma.gost, dolazak: forma.dolazak, odlazak: forma.odlazak, cena, status: forma.status, izvor: forma.izvor, kontakt: forma.kontakt, napomena: forma.napomena, brGostiju: forma.brGostiju || 2 }, ...rez])
-    } else {
-      setRez(rez.map(r => r.id === izmenaId ? { ...r, ...forma, apartmanId: Number(forma.apartmanId), cena } : r))
+    const payload = {
+      gost: forma.gost, apartman_id: Number(forma.apartmanId), dolazak: forma.dolazak,
+      odlazak: forma.odlazak, cena, status: forma.status, izvor: forma.izvor,
+      kontakt: forma.kontakt, napomena: forma.napomena, br_gostiju: forma.brGostiju,
     }
+    if (modal === 'nova') {
+      await supabase.from('rezervacije').insert([{ ...payload, user_id: user.id }])
+    } else {
+      await supabase.from('rezervacije').update(payload).eq('id', izmenaId)
+    }
+    await load()
     setModal(null)
   }
 
-  function obrisi(id) {
+  async function obrisi(id) {
+    await supabase.from('rezervacije').delete().eq('id', id)
     setRez(rez.filter(r => r.id !== id))
     setBrisanje(null)
   }
+
+  if (loading) return <div className="flex items-center justify-center py-20"><div className="w-6 h-6 border-2 border-teal-600 border-t-transparent rounded-full animate-spin" /></div>
 
   return (
     <div className="p-4 md:p-6 max-w-7xl mx-auto space-y-4">
@@ -174,10 +192,10 @@ export default function Rezervacije({ syncedRez = [] }) {
                     <td className="px-4 py-3 font-medium text-slate-700 dark:text-slate-200 whitespace-nowrap">{r.gost}</td>
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-2">
-                        <div className="w-6 h-6 rounded-md flex items-center justify-center flex-shrink-0" style={{ backgroundColor: apt?.boja + '20' }}>
-                          <Home size={12} style={{ color: apt?.boja }} />
+                        <div className="w-6 h-6 rounded-md flex items-center justify-center flex-shrink-0" style={{ backgroundColor: (apt?.boja || '#94a3b8') + '20' }}>
+                          <Home size={12} style={{ color: apt?.boja || '#94a3b8' }} />
                         </div>
-                        <span className="text-slate-600 dark:text-slate-300 whitespace-nowrap">{apt?.naziv}</span>
+                        <span className="text-slate-600 dark:text-slate-300 whitespace-nowrap">{apt?.naziv || '—'}</span>
                       </div>
                     </td>
                     <td className="px-4 py-3 text-slate-500 dark:text-slate-400 whitespace-nowrap">{r.dolazak}</td>
@@ -198,20 +216,12 @@ export default function Rezervacije({ syncedRez = [] }) {
                       <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                         {r.kontakt && (
                           <>
-                            <a href={waUrl(r.kontakt)} target="_blank" rel="noreferrer" onClick={e => e.stopPropagation()} className="text-slate-400 hover:text-green-500 transition-colors" title="WhatsApp">
-                              <MessageCircle size={14} />
-                            </a>
-                            <a href={`tel:${r.kontakt}`} onClick={e => e.stopPropagation()} className="text-slate-400 hover:text-blue-500 transition-colors" title="Pozovi">
-                              <Phone size={14} />
-                            </a>
+                            <a href={waUrl(r.kontakt)} target="_blank" rel="noreferrer" onClick={e => e.stopPropagation()} className="text-slate-400 hover:text-green-500 transition-colors" title="WhatsApp"><MessageCircle size={14} /></a>
+                            <a href={`tel:${r.kontakt}`} onClick={e => e.stopPropagation()} className="text-slate-400 hover:text-blue-500 transition-colors" title="Pozovi"><Phone size={14} /></a>
                           </>
                         )}
-                        <button onClick={e => otvoriIzmenu(r, e)} className="text-slate-400 hover:text-teal-600 dark:hover:text-teal-400 transition-colors" title="Izmeni">
-                          <Pencil size={14} />
-                        </button>
-                        <button onClick={e => { e.stopPropagation(); setBrisanje(r) }} className="text-slate-400 hover:text-red-500 transition-colors" title="Obriši">
-                          <Trash2 size={14} />
-                        </button>
+                        <button onClick={e => otvoriIzmenu(r, e)} className="text-slate-400 hover:text-teal-600 dark:hover:text-teal-400 transition-colors"><Pencil size={14} /></button>
+                        <button onClick={e => { e.stopPropagation(); setBrisanje(r) }} className="text-slate-400 hover:text-red-500 transition-colors"><Trash2 size={14} /></button>
                       </div>
                     </td>
                   </tr>
@@ -223,14 +233,7 @@ export default function Rezervacije({ syncedRez = [] }) {
         </div>
       </div>
 
-      {modal && (
-        <RezModal
-          forma={forma} setForma={setForma}
-          onSacuvaj={sacuvaj}
-          onOtkazi={() => setModal(null)}
-          naslov={modal === 'nova' ? 'Nova rezervacija' : 'Izmeni rezervaciju'}
-        />
-      )}
+      {modal && <RezModal forma={forma} setForma={setForma} onSacuvaj={sacuvaj} onOtkazi={() => setModal(null)} naslov={modal === 'nova' ? 'Nova rezervacija' : 'Izmeni rezervaciju'} apartmani={apartmani} />}
 
       {brisanje && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={() => setBrisanje(null)}>
