@@ -22,7 +22,7 @@ export default function NotificationBell({ apartmani = [], onNavigate }) {
   const [open, setOpen]             = useState(false)
   const [dismissed, setDismissed]   = useState(new Set())
   const [pushEnabled, setPushEnabled] = useState(
-    typeof window !== 'undefined' && Notification?.permission === 'granted'
+    typeof window !== 'undefined' && typeof Notification !== 'undefined' && Notification.permission === 'granted'
   )
 
   const visible   = notifications.filter(n => !dismissed.has(n.id))
