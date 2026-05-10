@@ -122,6 +122,30 @@ export default function Rezervacije({ syncedRez = [], apartmani = [] }) {
     setModal('izmena')
   }
 
+  async function nadjiIliKreirajGosta(ime, kontakt) {
+    // Pokušaj da pronađeš gosta po imenu (case-insensitive)
+    const { data: postojeci } = await supabase
+      .from('gosti')
+      .select('id, br_boravaka')
+      .eq('user_id', user.id)
+      .ilike('ime', ime.trim())
+      .single()
+
+    if (postojeci) {
+      // Gost postoji — povećaj broj boravaka
+      await supabase.from('gosti').update({ br_boravaka: (postojeci.br_boravaka || 0) + 1 }).eq('id', postojeci.id)
+      return postojeci.id
+    }
+
+    // Gost ne postoji — kreiraj novog
+    const { data: novi } = await supabase
+      .from('gosti')
+      .insert([{ user_id: user.id, ime: ime.trim(), telefon: kontakt || '', br_boravaka: 1 }])
+      .select('id')
+      .single()
+    return novi?.id || null
+  }
+
   async function sacuvaj() {
     if (!forma.gost || !forma.dolazak || !forma.odlazak) return
     const apt = apartmani.find(a => a.id === Number(forma.apartmanId))
@@ -133,7 +157,8 @@ export default function Rezervacije({ syncedRez = [], apartmani = [] }) {
       kontakt: forma.kontakt, napomena: forma.napomena, br_gostiju: forma.brGostiju,
     }
     if (modal === 'nova') {
-      await supabase.from('rezervacije').insert([{ ...payload, user_id: user.id }])
+      const gostId = await nadjiIliKreirajGosta(forma.gost, forma.kontakt)
+      await supabase.from('rezervacije').insert([{ ...payload, user_id: user.id, gost_id: gostId }])
     } else {
       await supabase.from('rezervacije').update(payload).eq('id', izmenaId)
     }
