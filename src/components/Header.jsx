@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react'
 import {
   Sun, Moon, X, Home, Mail, Phone, Save, Globe,
   RefreshCw, Link, CheckCircle, AlertCircle, Loader,
-  LogOut, Plus, Trash2, User, Shield,
+  LogOut, Plus, Trash2, User, Shield, Pencil,
 } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 import { supabase } from '../lib/supabase'
@@ -41,6 +41,7 @@ export default function Header({ aktivnaStrana, tamniRezim, setTamniRezim, icalS
   const [showAptForma, setShowAptForma] = useState(false)
   const [aptForma, setAptForma] = useState(PRAZNA_APT)
   const [aptError, setAptError] = useState('')
+  const [aptEditId, setAptEditId] = useState(null)
   const [clanovi, setClanovi] = useState([])
   const [loadingClanovi, setLoadingClanovi] = useState(false)
   const [showClanForma, setShowClanForma] = useState(false)
@@ -80,11 +81,18 @@ export default function Header({ aktivnaStrana, tamniRezim, setTamniRezim, icalS
     if (!error) { setSacuvano(true); setTimeout(() => setSacuvano(false), 2000) }
   }
 
-  async function dodajApartman() {
+  function otvoriEditApartman(a, e) {
+    e.stopPropagation()
+    setAptForma({ naziv: a.naziv, lokacija: a.lokacija || '', kapacitet: a.kapacitet, cenaPoNoci: a.cenaPoNoci, boja: a.boja, wifiNaziv: a.wifiNaziv || '', wifiSifra: a.wifiSifra || '', checkinInfo: a.checkinInfo || '' })
+    setAptEditId(a.id)
+    setAptError('')
+    setShowAptForma(true)
+  }
+
+  async function sacuvajApartman() {
     if (!aptForma.naziv) return
     setAptError('')
-    const { error } = await supabase.from('apartmani').insert([{
-      user_id: user.id,
+    const payload = {
       naziv: aptForma.naziv,
       lokacija: aptForma.lokacija,
       kapacitet: Number(aptForma.kapacitet),
@@ -93,10 +101,17 @@ export default function Header({ aktivnaStrana, tamniRezim, setTamniRezim, icalS
       wifi_naziv: aptForma.wifiNaziv,
       wifi_sifra: aptForma.wifiSifra,
       checkin_info: aptForma.checkinInfo,
-    }])
+    }
+    let error
+    if (aptEditId) {
+      ({ error } = await supabase.from('apartmani').update(payload).eq('id', aptEditId))
+    } else {
+      ({ error } = await supabase.from('apartmani').insert([{ ...payload, user_id: user.id }]))
+    }
     if (error) { setAptError(error.message); return }
     await onApartmaniChange?.()
     setAptForma(PRAZNA_APT)
+    setAptEditId(null)
     setShowAptForma(false)
   }
 
@@ -241,8 +256,12 @@ export default function Header({ aktivnaStrana, tamniRezim, setTamniRezim, icalS
                             <p className="text-sm font-medium text-slate-700 dark:text-slate-200 truncate">{a.naziv}</p>
                             <p className="text-xs text-slate-400 truncate">{a.lokacija} · {a.kapacitet} osoba</p>
                           </div>
-                          <div className="flex items-center gap-2 flex-shrink-0">
-                            <p className="text-sm font-semibold text-slate-600 dark:text-slate-300">€{a.cenaPoNoci}/noć</p>
+                          <div className="flex items-center gap-1 flex-shrink-0">
+                            <p className="text-sm font-semibold text-slate-600 dark:text-slate-300 mr-1">€{a.cenaPoNoci}/noć</p>
+                            <button onClick={e => otvoriEditApartman(a, e)}
+                              className="opacity-0 group-hover:opacity-100 p-1 rounded-lg hover:bg-teal-100 dark:hover:bg-teal-900/30 text-slate-400 hover:text-teal-600 transition-all">
+                              <Pencil size={13} />
+                            </button>
                             <button onClick={e => obrisiApartman(a.id, e)}
                               className="opacity-0 group-hover:opacity-100 p-1 rounded-lg hover:bg-red-100 dark:hover:bg-red-900/30 text-slate-400 hover:text-red-500 transition-all">
                               <Trash2 size={13} />
@@ -253,6 +272,7 @@ export default function Header({ aktivnaStrana, tamniRezim, setTamniRezim, icalS
 
                       {showAptForma ? (
                         <div className="border border-teal-200 dark:border-teal-800 rounded-xl p-3 space-y-2.5 bg-teal-50/30 dark:bg-teal-900/10">
+                          <p className="text-[10px] font-semibold text-teal-700 dark:text-teal-400 uppercase tracking-wide">{aptEditId ? 'Izmeni apartman' : 'Novi apartman'}</p>
                           {[
                             { label: 'Naziv', key: 'naziv', placeholder: 'Apartman Beograd' },
                             { label: 'Lokacija', key: 'lokacija', placeholder: 'Beograd, Srbija' },
@@ -311,14 +331,14 @@ export default function Header({ aktivnaStrana, tamniRezim, setTamniRezim, icalS
                             <p className="text-[10px] text-red-500 bg-red-50 dark:bg-red-900/20 rounded-lg px-2.5 py-1.5">{aptError}</p>
                           )}
                           <div className="flex gap-2 pt-1">
-                            <button onClick={() => { setShowAptForma(false); setAptError('') }}
+                            <button onClick={() => { setShowAptForma(false); setAptError(''); setAptEditId(null); setAptForma(PRAZNA_APT) }}
                               className="flex-1 py-1.5 text-xs font-medium text-slate-500 border border-slate-200 dark:border-slate-600 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors">
                               Otkaži
                             </button>
-                            <button onClick={dodajApartman}
+                            <button onClick={sacuvajApartman}
                               className="flex-1 py-1.5 text-xs font-semibold text-white rounded-lg hover:opacity-90 transition-opacity"
                               style={{ backgroundColor: '#01696f' }}>
-                              Dodaj
+                              {aptEditId ? 'Sačuvaj' : 'Dodaj'}
                             </button>
                           </div>
                         </div>
