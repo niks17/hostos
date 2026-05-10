@@ -138,11 +138,12 @@ export default function Rezervacije({ syncedRez = [], apartmani = [] }) {
     }
 
     // Gost ne postoji — kreiraj novog
-    const { data: novi } = await supabase
+    const { data: novi, error } = await supabase
       .from('gosti')
       .insert([{ user_id: user.id, ime: ime.trim(), telefon: kontakt || '', br_boravaka: 1 }])
       .select('id')
       .single()
+    if (error) console.error('Greška pri kreiranju gosta:', error.message)
     return novi?.id || null
   }
 
