@@ -52,7 +52,7 @@ function AppInner() {
   if (!user) return <LoginScreen />
 
   const stranice = {
-    dashboard:   <Dashboard syncedRez={icalSync.syncedRez} apartmani={apartmani} onApartmaniChange={loadApartmani} />,
+    dashboard:   <Dashboard syncedRez={icalSync.syncedRez} apartmani={apartmani} onApartmaniChange={loadApartmani} onNavigate={setAktivnaStrana} />,
     kalendar:    <Kalendar syncedRez={icalSync.syncedRez} apartmani={apartmani} />,
     rezervacije: <Rezervacije syncedRez={icalSync.syncedRez} apartmani={apartmani} />,
     gosti:       <Gosti />,
