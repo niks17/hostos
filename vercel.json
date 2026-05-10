@@ -2,5 +2,12 @@
   "buildCommand": "npx pnpm run build",
   "installCommand": "npx pnpm install",
   "outputDirectory": "dist",
-  "framework": "vite"
+  "framework": "vite",
+  "rewrites": [
+    {
+      "source": "/((?!api/).*)",
+      "destination": "/index.html"
+    }
+  ]
 }
+

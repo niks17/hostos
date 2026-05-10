@@ -14,7 +14,7 @@ const BOJE = ['#01696f', '#3b82f6', '#8b5cf6', '#f59e0b', '#ef4444', '#10b981', 
 
 const nazivStrane = {
   dashboard: 'Pregled', kalendar: 'Kalendar', rezervacije: 'Rezervacije',
-  gosti: 'Gosti', cistacije: 'Čistačice Hub', finansije: 'Finansije',
+  gosti: 'Gosti', cistacije: 'Čistačice Hub', finansije: 'Finansije', izvestaji: 'Izveštaji',
 }
 
 function roleBadge(role) {
@@ -48,7 +48,7 @@ export default function Header({ aktivnaStrana, tamniRezim, setTamniRezim, icalS
   const [showClanForma, setShowClanForma] = useState(false)
   const [clanForma, setClanForma] = useState(PRAZNA_CLAN)
 
-  const { getUrl, setUrl, sync, syncing, lastSync, syncError, syncedRez } = icalSync || {}
+  const { getUrl, setUrl, removeUrl, sync, syncing, lastSync, errors = [], hasErrors, syncedRez } = icalSync || {}
   const role = profile?.role || 'vlasnik'
   const isVlasnik = role === 'vlasnik'
 
@@ -438,9 +438,14 @@ export default function Header({ aktivnaStrana, tamniRezim, setTamniRezim, icalS
                           Najpre dodaj apartman u tabu <strong className="text-teal-600 dark:text-teal-400">Apartmani</strong>, pa će se ovde pojaviti polja za iCal URL.
                         </div>
                       )}
-                      {syncError && (
-                        <div className="flex items-start gap-2 p-3 bg-red-50 dark:bg-red-900/20 rounded-xl text-xs text-red-600 dark:text-red-400">
-                          <AlertCircle size={14} className="flex-shrink-0 mt-0.5" /> {syncError}
+                      {errors.length > 0 && (
+                        <div className="space-y-1.5">
+                          {errors.map((e, i) => (
+                            <div key={i} className="flex items-start gap-2 p-3 bg-red-50 dark:bg-red-900/20 rounded-xl text-xs text-red-600 dark:text-red-400">
+                              <AlertCircle size={14} className="flex-shrink-0 mt-0.5" />
+                              <span><strong>{e.platform}:</strong> {e.message}</span>
+                            </div>
+                          ))}
                         </div>
                       )}
                       {apartmani.map(a => (
@@ -460,7 +465,13 @@ export default function Header({ aktivnaStrana, tamniRezim, setTamniRezim, icalS
                                 <Link size={12} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400" />
                                 <input value={getUrl?.(a.id, platform) || ''} onChange={e => setUrl?.(a.id, platform, e.target.value)}
                                   placeholder={`https://${platform === 'booking' ? 'admin.booking.com' : 'www.airbnb.com'}/...ical...`}
-                                  className="w-full pl-7 pr-3 py-1.5 text-xs border border-slate-200 dark:border-slate-600 rounded-lg outline-none focus:border-teal-500 bg-transparent dark:text-white font-mono transition-colors" />
+                                  className="w-full pl-7 pr-8 py-1.5 text-xs border border-slate-200 dark:border-slate-600 rounded-lg outline-none focus:border-teal-500 bg-transparent dark:text-white font-mono transition-colors" />
+                                {getUrl?.(a.id, platform) && (
+                                  <button onClick={() => removeUrl?.(a.id, platform)}
+                                    className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-300 hover:text-red-400 transition-colors">
+                                    <X size={12} />
+                                  </button>
+                                )}
                               </div>
                             </div>
                           ))}
