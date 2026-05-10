@@ -27,7 +27,7 @@ function initials(ime) {
   return ime.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()
 }
 
-const PRAZNA_APT = { naziv: '', lokacija: '', kapacitet: 2, cenaPoNoci: 50, boja: '#01696f' }
+const PRAZNA_APT = { naziv: '', lokacija: '', kapacitet: 2, cenaPoNoci: 50, boja: '#01696f', wifiNaziv: '', wifiSifra: '', checkinInfo: '' }
 const PRAZNA_CLAN = { email: '', role: 'cistacica' }
 
 export default function Header({ aktivnaStrana, tamniRezim, setTamniRezim, icalSync, apartmani, onApartmaniChange }) {
@@ -90,6 +90,9 @@ export default function Header({ aktivnaStrana, tamniRezim, setTamniRezim, icalS
       kapacitet: Number(aptForma.kapacitet),
       cena_po_noci: Number(aptForma.cenaPoNoci),
       boja: aptForma.boja,
+      wifi_naziv: aptForma.wifiNaziv,
+      wifi_sifra: aptForma.wifiSifra,
+      checkin_info: aptForma.checkinInfo,
     }])
     if (error) { setAptError(error.message); return }
     await onApartmaniChange?.()
@@ -272,6 +275,27 @@ export default function Header({ aktivnaStrana, tamniRezim, setTamniRezim, icalS
                               <input type="number" min={1} value={aptForma.cenaPoNoci} onChange={e => setAptForma({ ...aptForma, cenaPoNoci: e.target.value })}
                                 className="w-full px-2.5 py-1.5 text-xs border border-slate-200 dark:border-slate-600 rounded-lg outline-none focus:border-teal-500 bg-white dark:bg-slate-800 dark:text-white" />
                             </div>
+                          </div>
+                          <div className="flex gap-2">
+                            <div className="flex-1">
+                              <label className="text-[10px] font-medium text-slate-500 dark:text-slate-400 mb-1 block">WiFi naziv</label>
+                              <input value={aptForma.wifiNaziv} onChange={e => setAptForma({ ...aptForma, wifiNaziv: e.target.value })}
+                                placeholder="HomeNetwork"
+                                className="w-full px-2.5 py-1.5 text-xs border border-slate-200 dark:border-slate-600 rounded-lg outline-none focus:border-teal-500 bg-white dark:bg-slate-800 dark:text-white" />
+                            </div>
+                            <div className="flex-1">
+                              <label className="text-[10px] font-medium text-slate-500 dark:text-slate-400 mb-1 block">WiFi šifra</label>
+                              <input value={aptForma.wifiSifra} onChange={e => setAptForma({ ...aptForma, wifiSifra: e.target.value })}
+                                placeholder="sifra123"
+                                className="w-full px-2.5 py-1.5 text-xs border border-slate-200 dark:border-slate-600 rounded-lg outline-none focus:border-teal-500 bg-white dark:bg-slate-800 dark:text-white" />
+                            </div>
+                          </div>
+                          <div>
+                            <label className="text-[10px] font-medium text-slate-500 dark:text-slate-400 mb-1 block">Check-in instrukcije</label>
+                            <textarea value={aptForma.checkinInfo} onChange={e => setAptForma({ ...aptForma, checkinInfo: e.target.value })}
+                              placeholder="Ključevi su u kutiji na ulaznim vratima. Kod: 1234"
+                              rows={2}
+                              className="w-full px-2.5 py-1.5 text-xs border border-slate-200 dark:border-slate-600 rounded-lg outline-none focus:border-teal-500 bg-white dark:bg-slate-800 dark:text-white resize-none" />
                           </div>
                           <div>
                             <label className="text-[10px] font-medium text-slate-500 dark:text-slate-400 mb-1 block">Boja</label>

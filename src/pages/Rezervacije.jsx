@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { Plus, X, Search, Home, Link, Pencil, Trash2, Phone, Mail, MessageCircle, PhoneCall } from 'lucide-react'
+import { Plus, X, Search, Home, Link, Pencil, Trash2, Phone, Mail, MessageCircle, PhoneCall, Send, Wifi, LogOut, ChevronRight } from 'lucide-react'
 import { supabase, mapRezervacija } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
 
@@ -16,6 +16,20 @@ const PRAZNA_FORMA = { gost: '', apartmanId: '', dolazak: '', odlazak: '', izvor
 
 function waUrl(tel) { return `https://wa.me/${tel.replace(/\D/g, '')}` }
 function viberUrl(tel) { return `viber://chat?number=${encodeURIComponent(tel.replace(/[\s\-()]/g, ''))}` }
+
+function waUrlTekst(tel, tekst) { return `https://wa.me/${tel.replace(/\D/g, '')}?text=${encodeURIComponent(tekst)}` }
+
+function templateCheckin(r, apt) {
+  return `Pozdrav ${r.gost}! 👋\n\nVaša rezervacija za *${apt?.naziv || 'apartman'}* je potvrđena.\n\n📅 Check-in: ${r.dolazak} od 14:00\n📅 Check-out: ${r.odlazak} do 11:00\n📍 Adresa: ${apt?.lokacija || ''}\n\n${apt?.checkinInfo || 'Ključevi su na dogovorenom mestu.'}\n\nSrdačan pozdrav! 🏠`
+}
+
+function templateWifi(r, apt) {
+  return `Pozdrav ${r.gost}! 📶\n\nWiFi podaci za *${apt?.naziv || 'apartman'}*:\n\n🌐 Mreža: ${apt?.wifiNaziv || '—'}\n🔑 Šifra: ${apt?.wifiSifra || '—'}\n\nPrijatan boravak! 😊`
+}
+
+function templateCheckout(r, apt) {
+  return `Pozdrav ${r.gost}! 🙏\n\nPodsetnik — checkout je *${r.odlazak}* do 11:00.\n\nMolimo ostavite ključeve na ${apt?.checkinInfo ? 'istom mestu gde ste ih preuzeli' : 'dogovorenom mestu'}.\n\nHvala što ste boravili kod nas u *${apt?.naziv || 'apartmanu'}*! Nadam se da se vidimo opet. ⭐`
+}
 
 function RezModal({ forma, setForma, onSacuvaj, onOtkazi, naslov, apartmani }) {
   return (
@@ -93,6 +107,7 @@ export default function Rezervacije({ syncedRez = [], apartmani = [] }) {
   const [forma, setForma] = useState({ ...PRAZNA_FORMA, apartmanId: apartmani[0]?.id || '' })
   const [izmenaId, setIzmenaId] = useState(null)
   const [brisanje, setBrisanje] = useState(null)
+  const [detalji, setDetalji] = useState(null)
 
   useEffect(() => { if (user) load() }, [user])
 
@@ -215,7 +230,7 @@ export default function Rezervacije({ syncedRez = [], apartmani = [] }) {
               {filtrirane.map(r => {
                 const apt = apartmani.find(a => a.id === r.apartmanId)
                 return (
-                  <tr key={r.id} className="hover:bg-slate-50 dark:hover:bg-slate-700/30 transition-colors group">
+                  <tr key={r.id} onClick={() => setDetalji(r)} className="hover:bg-slate-50 dark:hover:bg-slate-700/30 transition-colors group cursor-pointer">
                     <td className="px-4 py-3 font-medium text-slate-700 dark:text-slate-200 whitespace-nowrap">{r.gost}</td>
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-2">
@@ -262,6 +277,76 @@ export default function Rezervacije({ syncedRez = [], apartmani = [] }) {
       </div>
 
       {modal && <RezModal forma={forma} setForma={setForma} onSacuvaj={sacuvaj} onOtkazi={() => setModal(null)} naslov={modal === 'nova' ? 'Nova rezervacija' : 'Izmeni rezervaciju'} apartmani={apartmani} />}
+
+      {detalji && (() => {
+        const apt = apartmani.find(a => a.id === detalji.apartmanId)
+        const tel = detalji.kontakt
+        const poruke = [
+          { label: 'Check-in info', ikona: ChevronRight, boja: 'teal', tekst: templateCheckin(detalji, apt) },
+          { label: 'WiFi šifra', ikona: Wifi, boja: 'blue', tekst: templateWifi(detalji, apt) },
+          { label: 'Checkout reminder', ikona: LogOut, boja: 'amber', tekst: templateCheckout(detalji, apt) },
+        ]
+        return (
+          <div className="fixed inset-0 bg-black/50 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4" onClick={() => setDetalji(null)}>
+            <div className="bg-white dark:bg-slate-800 rounded-t-2xl sm:rounded-2xl w-full sm:max-w-md shadow-2xl animate-slide-up" onClick={e => e.stopPropagation()}>
+              <div className="p-5 border-b border-slate-100 dark:border-slate-700">
+                <div className="flex items-start justify-between">
+                  <div>
+                    <h3 className="font-bold text-slate-800 dark:text-white">{detalji.gost}</h3>
+                    <p className="text-sm text-slate-400 mt-0.5">{apt?.naziv} · {detalji.dolazak} → {detalji.odlazak}</p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <button onClick={e => { otvoriIzmenu(detalji, e); setDetalji(null) }} className="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-400 hover:text-teal-600 transition-colors"><Pencil size={15} /></button>
+                    <button onClick={() => setDetalji(null)} className="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-400 transition-colors"><X size={15} /></button>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3 mt-3">
+                  <span className={`text-[11px] font-semibold px-2.5 py-1 rounded-full ${statusBoje[detalji.status]}`}>{statusNaziv[detalji.status]}</span>
+                  <span className="text-sm font-bold text-slate-700 dark:text-slate-200">€{detalji.cena}</span>
+                  <span className="text-xs text-slate-400">{detalji.brGostiju} gosta</span>
+                </div>
+              </div>
+
+              {tel ? (
+                <div className="p-5 space-y-3">
+                  <p className="text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wide mb-1">Pošalji poruku</p>
+                  {poruke.map(p => {
+                    const boje = {
+                      teal: 'bg-teal-50 dark:bg-teal-900/20 border-teal-200 dark:border-teal-800 text-teal-700 dark:text-teal-300',
+                      blue: 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800 text-blue-700 dark:text-blue-300',
+                      amber: 'bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-800 text-amber-700 dark:text-amber-300',
+                    }
+                    return (
+                      <div key={p.label} className={`rounded-xl border p-3 ${boje[p.boja]}`}>
+                        <p className="text-xs font-semibold mb-2">{p.label}</p>
+                        <div className="flex gap-2">
+                          <a href={waUrlTekst(tel, p.tekst)} target="_blank" rel="noreferrer"
+                            className="flex-1 py-1.5 text-xs font-semibold bg-white dark:bg-slate-700 border border-current/20 rounded-lg flex items-center justify-center gap-1.5 hover:opacity-80 transition-opacity">
+                            <MessageCircle size={13} /> WhatsApp
+                          </a>
+                          <a href={viberUrl(tel)}
+                            className="flex-1 py-1.5 text-xs font-semibold bg-white dark:bg-slate-700 border border-current/20 rounded-lg flex items-center justify-center gap-1.5 hover:opacity-80 transition-opacity">
+                            <PhoneCall size={13} /> Viber
+                          </a>
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              ) : (
+                <div className="p-5 text-center">
+                  <p className="text-sm text-slate-400">Dodaj kontakt broj da bi slao poruke</p>
+                  <button onClick={e => { otvoriIzmenu(detalji, e); setDetalji(null) }}
+                    className="mt-3 px-4 py-2 text-sm font-semibold text-white rounded-xl hover:opacity-90"
+                    style={{ backgroundColor: '#01696f' }}>
+                    Dodaj kontakt
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        )
+      })()}
 
       {brisanje && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={() => setBrisanje(null)}>
