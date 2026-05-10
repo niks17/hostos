@@ -5,6 +5,7 @@ import {
   CheckCircle2, Circle, ChevronRight, Plus, Link, Phone, ChevronDown,
   ArrowRight, X, Zap
 } from 'lucide-react'
+import GuestPortalModal from '../components/GuestPortalModal'
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts'
 import { supabase, mapRezervacija, TIP_CONFIG } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
@@ -376,6 +377,7 @@ export default function Dashboard({ apartmani = [], onApartmaniChange, onNavigat
   const [tasks, setTasks]             = useState([])
   const [loading, setLoading]         = useState(true)
   const [sutraExpanded, setSutraExpanded] = useState(false)
+  const [guestPortalApt, setGuestPortalApt] = useState(null)
 
   const danas = todayStr()
   const juce  = yesterdayStr()
@@ -662,6 +664,37 @@ export default function Dashboard({ apartmani = [], onApartmaniChange, onNavigat
             </div>
           )}
 
+          {/* Apartmani + Guest Portal links */}
+          <div className="bg-white dark:bg-slate-800 rounded-2xl p-5 shadow-sm border border-slate-100 dark:border-slate-700">
+            <h2 className="font-bold text-slate-800 dark:text-white mb-4 flex items-center gap-2">
+              <Home size={15} className="text-slate-400" /> Apartmani
+            </h2>
+            <div className="space-y-2">
+              {apartmani.map(a => {
+                const zauzet  = sveRez.some(r => r.apartmanId === a.id && r.dolazak <= danas && r.odlazak > danas && r.status === 'potvrdjeno')
+                return (
+                  <div key={a.id} className="flex items-center gap-3 p-3 rounded-xl bg-slate-50 dark:bg-slate-700/50">
+                    <div className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0" style={{ backgroundColor: a.boja + '20' }}>
+                      <Home size={13} style={{ color: a.boja }} />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-slate-700 dark:text-slate-200 truncate">{a.naziv}</p>
+                      <p className="text-xs text-slate-400">{zauzet ? 'Zauzet' : 'Slobodan'}</p>
+                    </div>
+                    <button
+                      onClick={() => setGuestPortalApt(a)}
+                      className="flex items-center gap-1 px-2.5 py-1.5 text-[11px] font-bold rounded-lg border transition-all active:scale-95"
+                      style={{ color: a.guest_token ? '#01696f' : '#94a3b8', borderColor: a.guest_token ? '#01696f40' : '#e2e8f0', backgroundColor: a.guest_token ? '#01696f08' : 'transparent' }}
+                      title="Guest Portal"
+                    >
+                      <Link size={11} /> {a.guest_token ? 'Portal' : 'Podesi'}
+                    </button>
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+
           {/* Mini chart */}
           <div className="bg-white dark:bg-slate-800 rounded-2xl p-5 shadow-sm border border-slate-100 dark:border-slate-700">
             <h2 className="font-bold text-slate-800 dark:text-white mb-1 flex items-center gap-2">
@@ -684,6 +717,15 @@ export default function Dashboard({ apartmani = [], onApartmaniChange, onNavigat
         </div>
 
       </div>
+
+      {/* ── Guest Portal Modal ── */}
+      {guestPortalApt && (
+        <GuestPortalModal
+          apartman={guestPortalApt}
+          onClose={() => setGuestPortalApt(null)}
+          onSaved={() => { onApartmaniChange?.(); setGuestPortalApt(null) }}
+        />
+      )}
     </div>
   )
 }

@@ -10,6 +10,7 @@ import Rezervacije from './pages/Rezervacije'
 import Gosti from './pages/Gosti'
 import CistacijeHub from './pages/CistacijeHub'
 import Finansije from './pages/Finansije'
+import GuestPortal from './pages/GuestPortal'
 import { useIcalSync } from './hooks/useIcalSync'
 import { supabase, mapApartman } from './lib/supabase'
 
@@ -90,6 +91,12 @@ function AppInner() {
 }
 
 export default function App() {
+  // ── Guest portal: public route, no auth needed ──────────────────────────
+  const guestMatch = window.location.pathname.match(/^\/g\/([^/]+)/)
+  if (guestMatch) {
+    return <GuestPortal token={guestMatch[1]} />
+  }
+
   return (
     <AuthProvider>
       <AppInner />

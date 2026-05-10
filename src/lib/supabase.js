@@ -7,7 +7,18 @@ export const supabase = createClient(
 
 // ── Mappers: DB snake_case → frontend camelCase ───────────────────────────────
 export function mapApartman(a) {
-  return { ...a, cenaPoNoci: a.cena_po_noci, wifiNaziv: a.wifi_naziv, wifiSifra: a.wifi_sifra, checkinInfo: a.checkin_info }
+  return {
+    ...a,
+    cenaPoNoci:   a.cena_po_noci,
+    wifiNaziv:    a.wifi_naziv,
+    wifiSifra:    a.wifi_sifra,
+    checkinInfo:  a.checkin_info,
+    guestToken:   a.guest_token,
+    welcomeMsg:   a.welcome_msg,
+    parkingInfo:  a.parking_info,
+    houseRules:   a.house_rules,
+    hostContact:  a.host_contact,
+  }
 }
 
 export function mapRezervacija(r) {
