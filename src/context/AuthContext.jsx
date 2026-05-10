@@ -11,22 +11,34 @@ export function AuthProvider({ children }) {
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       setUser(session?.user ?? null)
-      if (session?.user) fetchProfile(session.user.id)
+      if (session?.user) fetchProfile(session.user.id, session.user.email)
       else setLoading(false)
     })
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setUser(session?.user ?? null)
-      if (session?.user) fetchProfile(session.user.id)
+      if (session?.user) fetchProfile(session.user.id, session.user.email)
       else { setProfile(null); setLoading(false) }
     })
 
     return () => subscription.unsubscribe()
   }, [])
 
-  async function fetchProfile(userId) {
-    const { data } = await supabase.from('profiles').select('*').eq('id', userId).single()
-    setProfile(data)
+  async function fetchProfile(userId, email) {
+    const { data: prof } = await supabase.from('profiles').select('*').eq('id', userId).single()
+
+    // Check if this user is a team member (linked by email)
+    const { data: member } = await supabase
+      .from('team_members')
+      .select('vlasnik_id, role')
+      .eq('email', email)
+      .single()
+
+    if (member) {
+      setProfile({ ...prof, role: member.role, ownerId: member.vlasnik_id })
+    } else {
+      setProfile({ ...prof, role: prof?.role || 'vlasnik', ownerId: userId })
+    }
     setLoading(false)
   }
 

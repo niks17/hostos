@@ -13,8 +13,14 @@ import Finansije from './pages/Finansije'
 import { useIcalSync } from './hooks/useIcalSync'
 import { supabase, mapApartman } from './lib/supabase'
 
+function defaultPage(role) {
+  if (role === 'cistacica') return 'cistacije'
+  if (role === 'kooperant') return 'kalendar'
+  return 'dashboard'
+}
+
 function AppInner() {
-  const { user, loading } = useAuth()
+  const { user, profile, loading } = useAuth()
   const [aktivnaStrana, setAktivnaStrana] = useState('dashboard')
   const [tamniRezim, setTamniRezim] = useState(false)
   const [apartmani, setApartmani] = useState([])
@@ -27,6 +33,10 @@ function AppInner() {
   useEffect(() => {
     if (user) loadApartmani()
   }, [user])
+
+  useEffect(() => {
+    if (profile?.role) setAktivnaStrana(defaultPage(profile.role))
+  }, [profile?.role])
 
   async function loadApartmani() {
     const { data } = await supabase.from('apartmani').select('*').order('created_at')
