@@ -76,6 +76,7 @@ function AppInner() {
           icalSync={icalSync}
           apartmani={apartmani}
           onApartmaniChange={loadApartmani}
+          onNavigate={setAktivnaStrana}
         />
         <main className="flex-1 overflow-y-auto pb-20 md:pb-0">
           <div key={aktivnaStrana} className="animate-slide-up min-h-full">

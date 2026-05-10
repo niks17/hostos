@@ -6,6 +6,7 @@ import {
 } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 import { supabase } from '../lib/supabase'
+import NotificationBell from './NotificationBell'
 
 const JEZICI = ['Srpski', 'English', 'Deutsch']
 const VALUTE = ['EUR (€)', 'RSD (din)', 'USD ($)']
@@ -30,7 +31,7 @@ function initials(ime) {
 const PRAZNA_APT = { naziv: '', lokacija: '', kapacitet: 2, cenaPoNoci: 50, boja: '#01696f', wifiNaziv: '', wifiSifra: '', checkinInfo: '' }
 const PRAZNA_CLAN = { email: '', role: 'cistacica' }
 
-export default function Header({ aktivnaStrana, tamniRezim, setTamniRezim, icalSync, apartmani, onApartmaniChange }) {
+export default function Header({ aktivnaStrana, tamniRezim, setTamniRezim, icalSync, apartmani, onApartmaniChange, onNavigate }) {
   const { user, profile, signOut, updateProfile } = useAuth()
   const [otvorenoProf, setOtvorenoProf] = useState(false)
   const [aktivniTab, setAktivniTab] = useState('profil')
@@ -159,6 +160,11 @@ export default function Header({ aktivnaStrana, tamniRezim, setTamniRezim, icalS
           className="md:hidden p-2 rounded-lg text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors">
           {tamniRezim ? <Sun size={18} /> : <Moon size={18} />}
         </button>
+
+        {/* Smart notifications bell */}
+        {role === 'vlasnik' && (
+          <NotificationBell apartmani={apartmani} onNavigate={onNavigate} />
+        )}
 
         {syncing && (
           <div className="hidden md:flex items-center gap-1.5 text-xs text-teal-600 dark:text-teal-400 bg-teal-50 dark:bg-teal-900/20 px-2.5 py-1.5 rounded-lg">
