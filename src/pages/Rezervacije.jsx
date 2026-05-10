@@ -1,7 +1,10 @@
 import React, { useState, useEffect } from 'react'
-import { Plus, X, Search, Home, Link, Pencil, Trash2, Phone, Mail, MessageCircle, PhoneCall, Send, Wifi, LogOut, ChevronRight } from 'lucide-react'
+import { Plus, X, Search, Home, Link, Pencil, Trash2, Phone, MessageCircle, PhoneCall, Zap, ToggleLeft, ToggleRight } from 'lucide-react'
 import { supabase, mapRezervacija, logActivity } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
+import InboxModal from '../components/InboxModal'
+import WorkflowToast from '../components/WorkflowToast'
+import { runWorkflows, loadWorkflowSettings, saveWorkflowSettings, WORKFLOW_DEFS } from '../lib/workflows'
 
 const statusBoje = {
   potvrdjeno: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400',
@@ -16,20 +19,6 @@ const PRAZNA_FORMA = { gost: '', apartmanId: '', dolazak: '', odlazak: '', izvor
 
 function waUrl(tel) { return `https://wa.me/${tel.replace(/\D/g, '')}` }
 function viberUrl(tel) { return `viber://chat?number=${encodeURIComponent(tel.replace(/[\s\-()]/g, ''))}` }
-
-function waUrlTekst(tel, tekst) { return `https://wa.me/${tel.replace(/\D/g, '')}?text=${encodeURIComponent(tekst)}` }
-
-function templateCheckin(r, apt) {
-  return `Pozdrav ${r.gost}! 👋\n\nVaša rezervacija za *${apt?.naziv || 'apartman'}* je potvrđena.\n\n📅 Check-in: ${r.dolazak} od 14:00\n📅 Check-out: ${r.odlazak} do 11:00\n📍 Adresa: ${apt?.lokacija || ''}\n\n${apt?.checkinInfo || 'Ključevi su na dogovorenom mestu.'}\n\nSrdačan pozdrav! 🏠`
-}
-
-function templateWifi(r, apt) {
-  return `Pozdrav ${r.gost}! 📶\n\nWiFi podaci za *${apt?.naziv || 'apartman'}*:\n\n🌐 Mreža: ${apt?.wifiNaziv || '—'}\n🔑 Šifra: ${apt?.wifiSifra || '—'}\n\nPrijatan boravak! 😊`
-}
-
-function templateCheckout(r, apt) {
-  return `Pozdrav ${r.gost}! 🙏\n\nPodsetnik — checkout je *${r.odlazak}* do 11:00.\n\nMolimo ostavite ključeve na ${apt?.checkinInfo ? 'istom mestu gde ste ih preuzeli' : 'dogovorenom mestu'}.\n\nHvala što ste boravili kod nas u *${apt?.naziv || 'apartmanu'}*! Nadam se da se vidimo opet. ⭐`
-}
 
 function RezModal({ forma, setForma, onSacuvaj, onOtkazi, naslov, apartmani }) {
   return (
@@ -106,8 +95,12 @@ export default function Rezervacije({ syncedRez = [], apartmani = [] }) {
   const [modal, setModal] = useState(null)
   const [forma, setForma] = useState({ ...PRAZNA_FORMA, apartmanId: apartmani[0]?.id || '' })
   const [izmenaId, setIzmenaId] = useState(null)
+  const [prevStatus, setPrevStatus] = useState(null)
   const [brisanje, setBrisanje] = useState(null)
   const [detalji, setDetalji] = useState(null)
+  const [workflowResults, setWorkflowResults] = useState(null)
+  const [workflowSettings, setWorkflowSettings] = useState(loadWorkflowSettings)
+  const [workflowConfig, setWorkflowConfig] = useState(false)
 
   useEffect(() => { if (user) load() }, [user])
 
@@ -134,7 +127,14 @@ export default function Rezervacije({ syncedRez = [], apartmani = [] }) {
     e.stopPropagation()
     setForma({ gost: r.gost, apartmanId: r.apartmanId, dolazak: r.dolazak, odlazak: r.odlazak, izvor: r.izvor, napomena: r.napomena || '', kontakt: r.kontakt || '', status: r.status, brGostiju: r.brGostiju || 2 })
     setIzmenaId(r.id)
+    setPrevStatus(r.status)
     setModal('izmena')
+  }
+
+  function toggleWorkflow(id) {
+    const next = { ...workflowSettings, [id]: !workflowSettings[id] }
+    setWorkflowSettings(next)
+    saveWorkflowSettings(next)
   }
 
   async function nadjiIliKreirajGosta(ime, kontakt) {
@@ -172,19 +172,47 @@ export default function Rezervacije({ syncedRez = [], apartmani = [] }) {
       odlazak: forma.odlazak, cena, status: forma.status, izvor: forma.izvor,
       kontakt: forma.kontakt, napomena: forma.napomena, br_gostiju: forma.brGostiju,
     }
+
+    let triggerWorkflows = false
+    let rezForWorkflow = null
+
     if (modal === 'nova') {
       const gostId = await nadjiIliKreirajGosta(forma.gost, forma.kontakt)
-      await supabase.from('rezervacije').insert([{ ...payload, user_id: user.id, gost_id: gostId }])
-      const apt = apartmani.find(a => a.id === Number(forma.apartmanId))
+      const { data: newRez } = await supabase
+        .from('rezervacije')
+        .insert([{ ...payload, user_id: user.id, gost_id: gostId }])
+        .select('id')
+        .single()
       await logActivity(user.id, 'rezervacija',
         `Nova rezervacija — ${forma.gost}`,
         { izvor: forma.izvor, apt_naziv: apt?.naziv, dolazak: forma.dolazak }
       )
+      // Trigger workflows for new confirmed reservations
+      if (forma.status === 'potvrdjeno') {
+        triggerWorkflows = true
+        rezForWorkflow = { ...forma, id: newRez?.id, cena, apartmanId: Number(forma.apartmanId) }
+      }
     } else {
       await supabase.from('rezervacije').update(payload).eq('id', izmenaId)
+      // Trigger workflows when status changes TO confirmed
+      if (forma.status === 'potvrdjeno' && prevStatus !== 'potvrdjeno') {
+        triggerWorkflows = true
+        rezForWorkflow = { ...forma, id: izmenaId, cena, apartmanId: Number(forma.apartmanId) }
+      }
     }
+
     await load()
     setModal(null)
+
+    if (triggerWorkflows && rezForWorkflow) {
+      const results = await runWorkflows({
+        rez: rezForWorkflow,
+        apt,
+        userId: user.id,
+        settings: workflowSettings,
+      })
+      if (results.length > 0) setWorkflowResults(results)
+    }
   }
 
   async function obrisi(id) {
@@ -213,6 +241,18 @@ export default function Rezervacije({ syncedRez = [], apartmani = [] }) {
             <input value={pretraga} onChange={e => setPretraga(e.target.value)} placeholder="Pretraži..."
               className="w-full sm:w-48 pl-8 pr-3 py-2 text-sm bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg outline-none focus:border-teal-500 dark:text-white transition-colors" />
           </div>
+          {/* Workflow config button */}
+          <button
+            onClick={() => setWorkflowConfig(true)}
+            title="Auto Workflows"
+            className="relative p-2 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 hover:text-teal-600 hover:border-teal-400 transition-all active:scale-95"
+          >
+            <Zap size={16} />
+            {/* Dot showing how many workflows are active */}
+            <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full text-[9px] font-black text-white flex items-center justify-center" style={{ backgroundColor: '#01696f' }}>
+              {Object.values(workflowSettings).filter(Boolean).length}
+            </span>
+          </button>
           <button onClick={otvoriNovu}
             className="flex items-center gap-1.5 px-4 py-2 text-sm font-semibold text-white rounded-lg hover:opacity-90 transition-opacity whitespace-nowrap"
             style={{ backgroundColor: '#01696f' }}>
@@ -283,77 +323,87 @@ export default function Rezervacije({ syncedRez = [], apartmani = [] }) {
 
       {modal && <RezModal forma={forma} setForma={setForma} onSacuvaj={sacuvaj} onOtkazi={() => setModal(null)} naslov={modal === 'nova' ? 'Nova rezervacija' : 'Izmeni rezervaciju'} apartmani={apartmani} />}
 
-      {detalji && (() => {
-        const apt = apartmani.find(a => a.id === detalji.apartmanId)
-        const tel = detalji.kontakt
-        const poruke = [
-          { label: 'Check-in info', ikona: ChevronRight, boja: 'teal', tekst: templateCheckin(detalji, apt) },
-          { label: 'WiFi šifra', ikona: Wifi, boja: 'blue', tekst: templateWifi(detalji, apt) },
-          { label: 'Checkout reminder', ikona: LogOut, boja: 'amber', tekst: templateCheckout(detalji, apt) },
-        ]
-        return (
-          <div className="fixed inset-0 bg-black/50 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4" onClick={() => setDetalji(null)}>
-            <div className="bg-white dark:bg-slate-800 rounded-t-2xl sm:rounded-2xl w-full sm:max-w-md shadow-2xl animate-slide-up" onClick={e => e.stopPropagation()}>
-              <div className="p-5 border-b border-slate-100 dark:border-slate-700">
-                <div className="flex items-start justify-between">
-                  <div>
-                    <h3 className="font-bold text-slate-800 dark:text-white">{detalji.gost}</h3>
-                    <p className="text-sm text-slate-400 mt-0.5">{apt?.naziv} · {detalji.dolazak} → {detalji.odlazak}</p>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <button onClick={e => { otvoriIzmenu(detalji, e); setDetalji(null) }} className="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-400 hover:text-teal-600 transition-colors"><Pencil size={15} /></button>
-                    <button onClick={() => setDetalji(null)} className="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-400 transition-colors"><X size={15} /></button>
-                  </div>
+      {detalji && (
+        <InboxModal
+          detalji={detalji}
+          apt={apartmani.find(a => a.id === detalji.apartmanId)}
+          user={user}
+          onClose={() => setDetalji(null)}
+          onEdit={(e) => { otvoriIzmenu(detalji, e || { stopPropagation: () => {} }); setDetalji(null) }}
+        />
+      )}
+
+      {/* ── Workflow Config Modal ── */}
+      {workflowConfig && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={() => setWorkflowConfig(false)}>
+          <div className="bg-white dark:bg-slate-800 rounded-2xl w-full max-w-sm shadow-2xl animate-slide-up" onClick={e => e.stopPropagation()}>
+            {/* Header */}
+            <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100 dark:border-slate-700">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-xl flex items-center justify-center" style={{ backgroundColor: '#01696f20' }}>
+                  <Zap size={16} style={{ color: '#01696f' }} />
                 </div>
-                <div className="flex items-center gap-3 mt-3">
-                  <span className={`text-[11px] font-semibold px-2.5 py-1 rounded-full ${statusBoje[detalji.status]}`}>{statusNaziv[detalji.status]}</span>
-                  <span className="text-sm font-bold text-slate-700 dark:text-slate-200">€{detalji.cena}</span>
-                  <span className="text-xs text-slate-400">{detalji.brGostiju} gosta</span>
+                <div>
+                  <h3 className="font-bold text-slate-800 dark:text-white text-sm">Auto Workflows</h3>
+                  <p className="text-[11px] text-slate-400">Izvršava se kad rezervacija postane Potvrđena</p>
                 </div>
               </div>
+              <button onClick={() => setWorkflowConfig(false)} className="text-slate-400 hover:text-slate-600 active:scale-90 transition-all">
+                <X size={16} />
+              </button>
+            </div>
 
-              {tel ? (
-                <div className="p-5 space-y-3">
-                  <p className="text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wide mb-1">Pošalji poruku</p>
-                  {poruke.map(p => {
-                    const boje = {
-                      teal: 'bg-teal-50 dark:bg-teal-900/20 border-teal-200 dark:border-teal-800 text-teal-700 dark:text-teal-300',
-                      blue: 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800 text-blue-700 dark:text-blue-300',
-                      amber: 'bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-800 text-amber-700 dark:text-amber-300',
-                    }
-                    return (
-                      <div key={p.label} className={`rounded-xl border p-3 ${boje[p.boja]}`}>
-                        <p className="text-xs font-semibold mb-2">{p.label}</p>
-                        <div className="flex gap-2">
-                          <a href={waUrlTekst(tel, p.tekst)} target="_blank" rel="noreferrer"
-                            onClick={() => logActivity(user.id, 'poruka', `${p.label} poslat — ${detalji.gost}`, { gost: detalji.gost, tip: p.label })}
-                            className="flex-1 py-1.5 text-xs font-semibold bg-white dark:bg-slate-700 border border-current/20 rounded-lg flex items-center justify-center gap-1.5 hover:opacity-80 transition-opacity">
-                            <MessageCircle size={13} /> WhatsApp
-                          </a>
-                          <a href={viberUrl(tel)}
-                            onClick={() => logActivity(user.id, 'poruka', `${p.label} poslat (Viber) — ${detalji.gost}`, { gost: detalji.gost, tip: p.label })}
-                            className="flex-1 py-1.5 text-xs font-semibold bg-white dark:bg-slate-700 border border-current/20 rounded-lg flex items-center justify-center gap-1.5 hover:opacity-80 transition-opacity">
-                            <PhoneCall size={13} /> Viber
-                          </a>
-                        </div>
-                      </div>
-                    )
-                  })}
-                </div>
-              ) : (
-                <div className="p-5 text-center">
-                  <p className="text-sm text-slate-400">Dodaj kontakt broj da bi slao poruke</p>
-                  <button onClick={e => { otvoriIzmenu(detalji, e); setDetalji(null) }}
-                    className="mt-3 px-4 py-2 text-sm font-semibold text-white rounded-xl hover:opacity-90"
-                    style={{ backgroundColor: '#01696f' }}>
-                    Dodaj kontakt
-                  </button>
-                </div>
-              )}
+            {/* Workflow list */}
+            <div className="px-5 py-4 space-y-3">
+              {WORKFLOW_DEFS.map(def => {
+                const enabled = workflowSettings[def.id] !== false
+                return (
+                  <div
+                    key={def.id}
+                    onClick={() => toggleWorkflow(def.id)}
+                    className={`flex items-center gap-3 p-3 rounded-xl border cursor-pointer transition-all active:scale-[0.98] select-none ${
+                      enabled
+                        ? 'border-teal-200 dark:border-teal-800 bg-teal-50/50 dark:bg-teal-900/10'
+                        : 'border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800/50'
+                    }`}
+                  >
+                    <span className="text-xl flex-shrink-0">{def.ikona}</span>
+                    <div className="flex-1 min-w-0">
+                      <p className={`text-sm font-semibold ${enabled ? 'text-slate-800 dark:text-white' : 'text-slate-400 dark:text-slate-500'}`}>
+                        {def.naziv}
+                      </p>
+                      <p className="text-[11px] text-slate-400 dark:text-slate-500 leading-snug mt-0.5">
+                        {def.opis}
+                      </p>
+                    </div>
+                    <div className="flex-shrink-0">
+                      {enabled
+                        ? <ToggleRight size={22} style={{ color: '#01696f' }} />
+                        : <ToggleLeft  size={22} className="text-slate-300 dark:text-slate-600" />
+                      }
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+
+            {/* Footer */}
+            <div className="px-5 pb-4">
+              <p className="text-[11px] text-slate-400 dark:text-slate-500 text-center">
+                Podešavanja se čuvaju lokalno na ovom uređaju
+              </p>
             </div>
           </div>
-        )
-      })()}
+        </div>
+      )}
+
+      {/* ── Workflow Toast ── */}
+      {workflowResults && (
+        <WorkflowToast
+          results={workflowResults}
+          onClose={() => setWorkflowResults(null)}
+        />
+      )}
 
       {brisanje && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={() => setBrisanje(null)}>

@@ -141,3 +141,12 @@ input:focus, textarea:focus, select:focus {
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
 }
+
+/* ── Workflow toast progress bar shrink ───────────────────────────────────── */
+@keyframes toast-shrink {
+  from { width: 100%; }
+  to   { width: 0%; }
+}
+.workflow-toast-progress {
+  animation: toast-shrink 7s linear forwards;
+}
