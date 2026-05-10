@@ -1,7 +1,7 @@
 import React from 'react'
 import {
   LayoutDashboard, Calendar, BookOpen, Users, Sparkles, Wallet,
-  Building2, LogOut, ChevronRight, Sun, Moon,
+  Building2, LogOut, Sun, Moon,
 } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 
@@ -21,73 +21,101 @@ function initials(ime) {
 
 export default function Sidebar({ aktivnaStrana, setAktivnaStrana, tamniRezim, setTamniRezim }) {
   const { user, profile, signOut } = useAuth()
-  const role = profile?.role || 'vlasnik'
+  const role      = profile?.role || 'vlasnik'
   const navigacija = SVE_STAVKE.filter(s => s.role.includes(role))
 
   return (
-    <aside className="hidden md:flex w-64 min-h-screen flex-col flex-shrink-0" style={{ backgroundColor: '#0f172a' }}>
-      <div className="px-6 py-6" style={{ borderBottom: '1px solid rgba(255,255,255,0.07)' }}>
+    <aside className="hidden md:flex w-60 min-h-screen flex-col flex-shrink-0 animate-fade-in"
+      style={{ backgroundColor: '#0f172a' }}>
+
+      {/* Logo */}
+      <div className="px-5 py-5" style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
         <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ backgroundColor: '#01696f' }}>
-            <Building2 size={20} className="text-white" />
+          <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
+            style={{ backgroundColor: '#01696f' }}>
+            <Building2 size={19} className="text-white" />
           </div>
           <div>
-            <span className="text-white font-bold text-lg tracking-tight">HostOS</span>
-            <p className="text-xs" style={{ color: 'rgba(255,255,255,0.3)' }}>Upravljanje apartmanima</p>
+            <span className="text-white font-black text-base tracking-tight">HostOS</span>
+            <p className="text-[11px] leading-tight" style={{ color: 'rgba(255,255,255,0.3)' }}>
+              Upravljanje apartmanima
+            </p>
           </div>
         </div>
       </div>
 
+      {/* Nav */}
       <nav className="flex-1 px-3 py-4 space-y-0.5">
         {navigacija.map((stavka) => {
-          const Ikona = stavka.ikona
+          const Ikona   = stavka.ikona
           const aktivan = aktivnaStrana === stavka.id
+
           return (
             <button
               key={stavka.id}
               onClick={() => setAktivnaStrana(stavka.id)}
-              className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-150"
-              style={aktivan ? { backgroundColor: '#01696f', color: '#fff' } : { color: 'rgba(255,255,255,0.5)' }}
-              onMouseEnter={e => { if (!aktivan) { e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.06)'; e.currentTarget.style.color = '#fff' } }}
-              onMouseLeave={e => { if (!aktivan) { e.currentTarget.style.backgroundColor = 'transparent'; e.currentTarget.style.color = 'rgba(255,255,255,0.5)' } }}
+              className={`
+                w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium
+                transition-all duration-150 active:scale-95
+                ${aktivan
+                  ? 'text-white'
+                  : 'text-white/40 hover:text-white/80 hover:bg-white/5'
+                }
+              `}
+              style={aktivan ? { backgroundColor: '#01696f' } : {}}
             >
-              <Ikona size={18} />
+              <Ikona size={17} strokeWidth={aktivan ? 2.2 : 1.8} />
               <span className="flex-1 text-left">{stavka.naziv}</span>
-              {aktivan && <ChevronRight size={14} className="opacity-60" />}
+              {aktivan && (
+                <div className="w-1.5 h-1.5 rounded-full bg-white/60" />
+              )}
             </button>
           )
         })}
       </nav>
 
-      <div className="px-3 py-4" style={{ borderTop: '1px solid rgba(255,255,255,0.07)' }}>
+      {/* Footer */}
+      <div className="px-3 py-4 space-y-1" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+
+        {/* Dark mode toggle */}
         <button
           onClick={() => setTamniRezim(!tamniRezim)}
-          className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm mb-1 transition-all"
-          style={{ color: 'rgba(255,255,255,0.5)' }}
-          onMouseEnter={e => { e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.06)'; e.currentTarget.style.color = '#fff' }}
-          onMouseLeave={e => { e.currentTarget.style.backgroundColor = 'transparent'; e.currentTarget.style.color = 'rgba(255,255,255,0.5)' }}
+          className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm
+            text-white/40 hover:text-white/80 hover:bg-white/5
+            transition-all duration-150 active:scale-95"
         >
-          {tamniRezim ? <Sun size={18} /> : <Moon size={18} />}
+          {tamniRezim
+            ? <Sun size={17} strokeWidth={1.8} />
+            : <Moon size={17} strokeWidth={1.8} />
+          }
           <span>{tamniRezim ? 'Svetli režim' : 'Tamni režim'}</span>
         </button>
 
-        <div className="flex items-center gap-3 px-3 py-2 mt-2">
-          <div className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 text-white text-xs font-bold" style={{ backgroundColor: '#01696f' }}>
+        {/* User row */}
+        <div className="flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-white/5 transition-colors group">
+          <div className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0
+            text-white text-xs font-black"
+            style={{ backgroundColor: '#01696f' }}>
             {initials(profile?.ime)}
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-white text-sm font-medium truncate">{profile?.ime || 'Korisnik'}</p>
-            <p className="text-xs truncate" style={{ color: 'rgba(255,255,255,0.3)' }}>{user?.email}</p>
+            <p className="text-white text-sm font-semibold truncate leading-tight">
+              {profile?.ime || 'Korisnik'}
+            </p>
+            <p className="text-[11px] truncate leading-tight" style={{ color: 'rgba(255,255,255,0.3)' }}>
+              {user?.email}
+            </p>
           </div>
-          <button onClick={signOut}
-            className="transition-colors flex-shrink-0"
-            style={{ color: 'rgba(255,255,255,0.4)' }}
-            onMouseEnter={e => e.currentTarget.style.color = '#fff'}
-            onMouseLeave={e => e.currentTarget.style.color = 'rgba(255,255,255,0.4)'}
-            title="Odjavi se">
-            <LogOut size={16} />
+          <button
+            onClick={signOut}
+            title="Odjavi se"
+            className="flex-shrink-0 p-1.5 rounded-lg
+              text-white/30 hover:text-white/70 hover:bg-white/10
+              transition-all duration-150 active:scale-90 opacity-0 group-hover:opacity-100">
+            <LogOut size={15} />
           </button>
         </div>
+
       </div>
     </aside>
   )

@@ -78,7 +78,9 @@ function AppInner() {
           onApartmaniChange={loadApartmani}
         />
         <main className="flex-1 overflow-y-auto pb-20 md:pb-0">
-          {stranice[aktivnaStrana]}
+          <div key={aktivnaStrana} className="animate-slide-up min-h-full">
+            {stranice[aktivnaStrana]}
+          </div>
         </main>
       </div>
       <BottomNav aktivnaStrana={aktivnaStrana} setAktivnaStrana={setAktivnaStrana} />
