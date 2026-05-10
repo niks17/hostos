@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react'
-import { Search, Phone, Mail, Star, X, Plus, MapPin, Pencil, Trash2, MessageCircle } from 'lucide-react'
+import { Search, Phone, Mail, Star, X, Plus, MapPin, Pencil, Trash2, MessageCircle, PhoneCall } from 'lucide-react'
 import { supabase, mapGost, mapRezervacija } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
 
 const PRAZNA_FORMA = { ime: '', email: '', telefon: '', drzava: 'Srbija', napomena: '' }
 
 function waUrl(tel) { return `https://wa.me/${tel.replace(/\D/g, '')}` }
+function viberUrl(tel) { return `viber://chat?number=${encodeURIComponent(tel.replace(/[\s\-()]/g, ''))}` }
 
 function GostForma({ forma, setForma, onSacuvaj, onOtkazi, naslov }) {
   return (
@@ -187,7 +188,8 @@ export default function Gosti() {
                   <div className="flex items-center gap-2 text-sm text-slate-500 dark:text-slate-400"><Phone size={14} /> {izabrani.telefon}</div>
                   <div className="flex gap-1.5">
                     <a href={`tel:${izabrani.telefon}`} className="p-1.5 rounded-lg bg-slate-100 dark:bg-slate-700 hover:bg-blue-100 dark:hover:bg-blue-900/30 text-slate-500 hover:text-blue-600 transition-colors"><Phone size={14} /></a>
-                    <a href={waUrl(izabrani.telefon || '')} target="_blank" rel="noreferrer" className="p-1.5 rounded-lg bg-slate-100 dark:bg-slate-700 hover:bg-green-100 dark:hover:bg-green-900/30 text-slate-500 hover:text-green-600 transition-colors"><MessageCircle size={14} /></a>
+                    <a href={waUrl(izabrani.telefon || '')} target="_blank" rel="noreferrer" className="p-1.5 rounded-lg bg-slate-100 dark:bg-slate-700 hover:bg-green-100 dark:hover:bg-green-900/30 text-slate-500 hover:text-green-600 transition-colors" title="WhatsApp"><MessageCircle size={14} /></a>
+                    <a href={viberUrl(izabrani.telefon || '')} className="p-1.5 rounded-lg bg-slate-100 dark:bg-slate-700 hover:bg-purple-100 dark:hover:bg-purple-900/30 text-slate-500 hover:text-purple-600 transition-colors" title="Viber"><PhoneCall size={14} /></a>
                   </div>
                 </div>
                 <div className="flex items-center gap-2 text-sm text-slate-500 dark:text-slate-400"><MapPin size={14} /> {izabrani.drzava} · {izabrani.brBoravaka} boravaka</div>

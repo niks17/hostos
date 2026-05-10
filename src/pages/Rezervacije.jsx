@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { Plus, X, Search, Home, Link, Pencil, Trash2, Phone, Mail, MessageCircle } from 'lucide-react'
+import { Plus, X, Search, Home, Link, Pencil, Trash2, Phone, Mail, MessageCircle, PhoneCall } from 'lucide-react'
 import { supabase, mapRezervacija } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
 
@@ -15,6 +15,7 @@ const filterNaziv = { sve: 'Sve', potvrdjeno: 'Potvrđene', cekanje: 'Na čekanj
 const PRAZNA_FORMA = { gost: '', apartmanId: '', dolazak: '', odlazak: '', izvor: 'Direktno', napomena: '', kontakt: '', status: 'potvrdjeno', brGostiju: 2 }
 
 function waUrl(tel) { return `https://wa.me/${tel.replace(/\D/g, '')}` }
+function viberUrl(tel) { return `viber://chat?number=${encodeURIComponent(tel.replace(/[\s\-()]/g, ''))}` }
 
 function RezModal({ forma, setForma, onSacuvaj, onOtkazi, naslov, apartmani }) {
   return (
@@ -217,6 +218,7 @@ export default function Rezervacije({ syncedRez = [], apartmani = [] }) {
                         {r.kontakt && (
                           <>
                             <a href={waUrl(r.kontakt)} target="_blank" rel="noreferrer" onClick={e => e.stopPropagation()} className="text-slate-400 hover:text-green-500 transition-colors" title="WhatsApp"><MessageCircle size={14} /></a>
+                            <a href={viberUrl(r.kontakt)} onClick={e => e.stopPropagation()} className="text-slate-400 hover:text-purple-500 transition-colors" title="Viber"><PhoneCall size={14} /></a>
                             <a href={`tel:${r.kontakt}`} onClick={e => e.stopPropagation()} className="text-slate-400 hover:text-blue-500 transition-colors" title="Pozovi"><Phone size={14} /></a>
                           </>
                         )}
