@@ -4,7 +4,7 @@ import {
   Plus, X, Trash2, Pencil, Check, MapPin, Timer, MessageSquare,
   AlertTriangle, ChevronDown, Sparkles
 } from 'lucide-react'
-import { supabase } from '../lib/supabase'
+import { supabase, logActivity } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
 
 const STAVKE_DEFAULT = [
@@ -223,11 +223,15 @@ function CleanerView({ taskovi, apartmani, toggleStavka, rezervacije }) {
 
   async function handleZavrseno() {
     setSaving(true)
-    if (napomena.trim()) {
-      await supabase.from('cistacke_tasks').update({ napomena: napomena.trim(), status: 'zavrseno' }).eq('id', task.id)
-    } else {
-      await supabase.from('cistacke_tasks').update({ status: 'zavrseno' }).eq('id', task.id)
-    }
+    await supabase.from('cistacke_tasks')
+      .update({ napomena: napomena.trim() || null, status: 'zavrseno' })
+      .eq('id', task.id)
+    await logActivity(
+      task.user_id,
+      'cistenje',
+      `${apt?.naziv || 'Apartman'} je očišćen`,
+      { task_id: task.id, apt_naziv: apt?.naziv, napomena: napomena.trim() || null }
+    )
     setSaving(false)
     setZavrsioId(task.id)
   }

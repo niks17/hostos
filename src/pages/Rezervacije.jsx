@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { Plus, X, Search, Home, Link, Pencil, Trash2, Phone, Mail, MessageCircle, PhoneCall, Send, Wifi, LogOut, ChevronRight } from 'lucide-react'
-import { supabase, mapRezervacija } from '../lib/supabase'
+import { supabase, mapRezervacija, logActivity } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
 
 const statusBoje = {
@@ -175,6 +175,11 @@ export default function Rezervacije({ syncedRez = [], apartmani = [] }) {
     if (modal === 'nova') {
       const gostId = await nadjiIliKreirajGosta(forma.gost, forma.kontakt)
       await supabase.from('rezervacije').insert([{ ...payload, user_id: user.id, gost_id: gostId }])
+      const apt = apartmani.find(a => a.id === Number(forma.apartmanId))
+      await logActivity(user.id, 'rezervacija',
+        `Nova rezervacija — ${forma.gost}`,
+        { izvor: forma.izvor, apt_naziv: apt?.naziv, dolazak: forma.dolazak }
+      )
     } else {
       await supabase.from('rezervacije').update(payload).eq('id', izmenaId)
     }
@@ -321,10 +326,12 @@ export default function Rezervacije({ syncedRez = [], apartmani = [] }) {
                         <p className="text-xs font-semibold mb-2">{p.label}</p>
                         <div className="flex gap-2">
                           <a href={waUrlTekst(tel, p.tekst)} target="_blank" rel="noreferrer"
+                            onClick={() => logActivity(user.id, 'poruka', `${p.label} poslat — ${detalji.gost}`, { gost: detalji.gost, tip: p.label })}
                             className="flex-1 py-1.5 text-xs font-semibold bg-white dark:bg-slate-700 border border-current/20 rounded-lg flex items-center justify-center gap-1.5 hover:opacity-80 transition-opacity">
                             <MessageCircle size={13} /> WhatsApp
                           </a>
                           <a href={viberUrl(tel)}
+                            onClick={() => logActivity(user.id, 'poruka', `${p.label} poslat (Viber) — ${detalji.gost}`, { gost: detalji.gost, tip: p.label })}
                             className="flex-1 py-1.5 text-xs font-semibold bg-white dark:bg-slate-700 border border-current/20 rounded-lg flex items-center justify-center gap-1.5 hover:opacity-80 transition-opacity">
                             <PhoneCall size={13} /> Viber
                           </a>

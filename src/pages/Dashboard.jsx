@@ -5,7 +5,7 @@ import {
   CheckCircle2, Circle, ChevronRight, Plus, Link, ArrowRight, X
 } from 'lucide-react'
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts'
-import { supabase, mapRezervacija } from '../lib/supabase'
+import { supabase, mapRezervacija, TIP_CONFIG } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -441,6 +441,120 @@ function TimelineItem({ item, apartmani }) {
   )
 }
 
+// ─── Relative time ─────────────────────────────────────────────────────────────
+function relTime(ts) {
+  const diff = Date.now() - new Date(ts).getTime()
+  const m = Math.floor(diff / 60000)
+  if (m < 1)   return 'sada'
+  if (m < 60)  return `pre ${m} min`
+  const h = Math.floor(m / 60)
+  if (h < 24)  return `pre ${h}h`
+  if (h < 48)  return 'juče'
+  return `pre ${Math.floor(h / 24)} dana`
+}
+
+// ─── Activity Feed ─────────────────────────────────────────────────────────────
+function ActivityFeed({ userId }) {
+  const [aktivnosti, setAktivnosti] = useState([])
+  const [loading, setLoading]       = useState(true)
+
+  useEffect(() => {
+    if (!userId) return
+    load()
+
+    // Real-time subscription — new activities pop in instantly
+    const channel = supabase
+      .channel(`activity-${userId}`)
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'activity_log' },
+        payload => {
+          setAktivnosti(prev => [payload.new, ...prev].slice(0, 20))
+        }
+      )
+      .subscribe()
+
+    return () => supabase.removeChannel(channel)
+  }, [userId])
+
+  async function load() {
+    const { data } = await supabase
+      .from('activity_log')
+      .select('*')
+      .order('created_at', { ascending: false })
+      .limit(20)
+    setAktivnosti(data || [])
+    setLoading(false)
+  }
+
+  const cfg = (tip) => TIP_CONFIG[tip] || { emoji: '•', label: tip, boja: '#94a3b8' }
+
+  if (loading) return (
+    <div className="space-y-3">
+      {[1,2,3,4].map(i => (
+        <div key={i} className="flex items-center gap-3">
+          <div className="skeleton w-8 h-8 rounded-full flex-shrink-0" />
+          <div className="flex-1 space-y-1.5">
+            <div className="skeleton h-3 w-3/4 rounded" />
+            <div className="skeleton h-2.5 w-1/3 rounded" />
+          </div>
+        </div>
+      ))}
+    </div>
+  )
+
+  if (aktivnosti.length === 0) return (
+    <div className="text-center py-8">
+      <p className="text-3xl mb-2 opacity-30">📋</p>
+      <p className="text-sm text-slate-400">Nema aktivnosti još</p>
+      <p className="text-xs text-slate-300 dark:text-slate-600 mt-1">Pojavljuju se kad dodaš rezervaciju, završiš čišćenje...</p>
+    </div>
+  )
+
+  return (
+    <div className="space-y-0 divide-y divide-slate-50 dark:divide-slate-700/50">
+      {aktivnosti.map((a, i) => {
+        const c = cfg(a.tip)
+        return (
+          <div
+            key={a.id}
+            className="flex items-start gap-3 py-3 first:pt-0 last:pb-0 animate-fade-in"
+            style={{ animationDelay: `${i * 30}ms` }}
+          >
+            {/* Icon dot */}
+            <div
+              className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 text-sm mt-0.5"
+              style={{ backgroundColor: c.boja + '18' }}
+            >
+              <span style={{ fontSize: 15 }}>{c.emoji}</span>
+            </div>
+
+            {/* Text */}
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium text-slate-700 dark:text-slate-200 leading-snug">
+                {a.opis}
+              </p>
+              <p className="text-xs text-slate-400 mt-0.5 tabular-nums">
+                {relTime(a.created_at)}
+              </p>
+            </div>
+
+            {/* Live dot for very recent */}
+            {Date.now() - new Date(a.created_at).getTime() < 60000 && (
+              <div className="flex-shrink-0 mt-2">
+                <span className="flex h-2 w-2">
+                  <span className="animate-ping absolute inline-flex h-2 w-2 rounded-full opacity-75" style={{ backgroundColor: c.boja }} />
+                  <span className="relative inline-flex rounded-full h-2 w-2" style={{ backgroundColor: c.boja }} />
+                </span>
+              </div>
+            )}
+          </div>
+        )
+      })}
+    </div>
+  )
+}
+
 // ─── Chart tooltip ─────────────────────────────────────────────────────────────
 function CustomTooltip({ active, payload, label }) {
   if (!active || !payload?.length) return null
@@ -661,6 +775,21 @@ export default function Dashboard({ apartmani = [], onApartmaniChange, onNavigat
             <p className="text-slate-500 dark:text-slate-400 text-sm font-medium">Slobodan dan — nema check-in-ova ni čišćenja</p>
           </div>
         )}
+      </div>
+
+      {/* ── Activity Feed ── */}
+      <div className="bg-white dark:bg-slate-800 rounded-2xl p-5 shadow-sm border border-slate-100 dark:border-slate-700">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="font-bold text-slate-800 dark:text-white flex items-center gap-2">
+            <span className="relative flex h-2.5 w-2.5">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-teal-400 opacity-75" />
+              <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-teal-500" />
+            </span>
+            Aktivnosti
+          </h2>
+          <span className="text-[10px] font-bold text-teal-600 dark:text-teal-400 uppercase tracking-wide">Live</span>
+        </div>
+        <ActivityFeed userId={user?.id} />
       </div>
 
       {/* ── Bottom grid ── */}
