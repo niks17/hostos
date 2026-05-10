@@ -40,6 +40,7 @@ export default function Header({ aktivnaStrana, tamniRezim, setTamniRezim, icalS
   const [valuta, setValuta] = useState('EUR (€)')
   const [showAptForma, setShowAptForma] = useState(false)
   const [aptForma, setAptForma] = useState(PRAZNA_APT)
+  const [aptError, setAptError] = useState('')
   const [clanovi, setClanovi] = useState([])
   const [loadingClanovi, setLoadingClanovi] = useState(false)
   const [showClanForma, setShowClanForma] = useState(false)
@@ -81,7 +82,8 @@ export default function Header({ aktivnaStrana, tamniRezim, setTamniRezim, icalS
 
   async function dodajApartman() {
     if (!aptForma.naziv) return
-    await supabase.from('apartmani').insert([{
+    setAptError('')
+    const { error } = await supabase.from('apartmani').insert([{
       user_id: user.id,
       naziv: aptForma.naziv,
       lokacija: aptForma.lokacija,
@@ -89,6 +91,7 @@ export default function Header({ aktivnaStrana, tamniRezim, setTamniRezim, icalS
       cena_po_noci: Number(aptForma.cenaPoNoci),
       boja: aptForma.boja,
     }])
+    if (error) { setAptError(error.message); return }
     await onApartmaniChange?.()
     setAptForma(PRAZNA_APT)
     setShowAptForma(false)
@@ -280,8 +283,11 @@ export default function Header({ aktivnaStrana, tamniRezim, setTamniRezim, icalS
                               ))}
                             </div>
                           </div>
+                          {aptError && (
+                            <p className="text-[10px] text-red-500 bg-red-50 dark:bg-red-900/20 rounded-lg px-2.5 py-1.5">{aptError}</p>
+                          )}
                           <div className="flex gap-2 pt-1">
-                            <button onClick={() => setShowAptForma(false)}
+                            <button onClick={() => { setShowAptForma(false); setAptError('') }}
                               className="flex-1 py-1.5 text-xs font-medium text-slate-500 border border-slate-200 dark:border-slate-600 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors">
                               Otkaži
                             </button>
