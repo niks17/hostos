@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react'
 import {
   LogIn, LogOut, Sparkles, AlertTriangle, MessageCircle, PhoneCall,
   Euro, Clock, Home, TrendingUp, CalendarCheck, AlertCircle,
-  CheckCircle2, Circle, ChevronRight, Plus, Link, ArrowRight, X
+  CheckCircle2, Circle, ChevronRight, Plus, Link, Phone, ChevronDown,
+  ArrowRight, X, Zap
 } from 'lucide-react'
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts'
 import { supabase, mapRezervacija, TIP_CONFIG } from '../lib/supabase'
@@ -13,14 +14,16 @@ function todayStr()     { return new Date().toISOString().split('T')[0] }
 function yesterdayStr() { const d = new Date(); d.setDate(d.getDate() - 1); return d.toISOString().split('T')[0] }
 function tomorrowStr()  { const d = new Date(); d.setDate(d.getDate() + 1); return d.toISOString().split('T')[0] }
 function in7Days()      { const d = new Date(); d.setDate(d.getDate() + 7);  return d.toISOString().split('T')[0] }
+function noći(a, b)     { return Math.max(1, Math.round((new Date(b) - new Date(a)) / 86400000)) }
 
-function waMsg(tel, tekst)  { return `https://wa.me/${tel?.replace(/\D/g, '')}?text=${encodeURIComponent(tekst)}` }
-function viberUrl(tel)       { return `viber://chat?number=${encodeURIComponent(tel?.replace(/[\s\-()]/g, '') || '')}` }
+function waMsg(tel, tekst) { return `https://wa.me/${tel?.replace(/\D/g,'')}?text=${encodeURIComponent(tekst)}` }
+function viberUrl(tel)      { return `viber://chat?number=${encodeURIComponent(tel?.replace(/[\s\-()]/g,'') || '')}` }
+
 function checkinTemplate(r, apt) {
   return `Pozdrav ${r.gost}! 👋\n\nVaša rezervacija za *${apt?.naziv || 'apartman'}* je potvrđena.\n\n📅 Check-in: ${r.dolazak} od 14:00\n📅 Check-out: ${r.odlazak} do 11:00\n📍 ${apt?.lokacija || ''}\n\n${apt?.checkinInfo || 'Ključevi su na dogovorenom mestu.'}\n\nSrdačan pozdrav! 🏠`
 }
 function checkoutTemplate(r, apt) {
-  return `Pozdrav ${r.gost}! 🙏\n\nPodsetnik — checkout je *${r.odlazak}* do 11:00.\n\nHvala što ste boravili u *${apt?.naziv || 'apartmanu'}*! Nadam se da se vidimo opet. ⭐`
+  return `Pozdrav ${r.gost}! 🙏\n\nPodsetnik — checkout je *${r.odlazak}* do 11:00.\n\nHvala što ste boravili u *${apt?.naziv || 'apartmanu'}*! ⭐`
 }
 function pozdrav(ime) {
   const h = new Date().getHours()
@@ -30,427 +33,272 @@ function pozdrav(ime) {
   if (h >= 17 && h < 21) return { tekst: `Dobro veče, ${name}`,  emoji: '🌆' }
   return { tekst: `Dobra noć, ${name}`, emoji: '🌙' }
 }
+function relTime(ts) {
+  const diff = Date.now() - new Date(ts).getTime()
+  const m = Math.floor(diff / 60000)
+  if (m < 1)  return 'sada'
+  if (m < 60) return `pre ${m} min`
+  const h = Math.floor(m / 60)
+  if (h < 24) return `pre ${h}h`
+  if (h < 48) return 'juče'
+  return `pre ${Math.floor(h/24)} dana`
+}
 
-// ─── Onboarding: full-screen welcome ──────────────────────────────────────────
+// ─── Onboarding ───────────────────────────────────────────────────────────────
 function OnboardingScreen({ profile, onApartmanCreated, onNavigate }) {
-  const [korak, setKorak] = useState(1) // 1 = apartman, 2 = rezervacija, 3 = ical
+  const [korak, setKorak] = useState(1)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
-
-  // Step 1 form
-  const [naziv, setNaziv]     = useState('')
+  const [naziv, setNaziv]       = useState('')
   const [lokacija, setLokacija] = useState('')
-  const [cena, setCena]       = useState('')
-
-  // Step 3 form
-  const [icalUrl, setIcalUrl] = useState('')
-  const [icalAptId, setIcalAptId] = useState(null)
-
+  const [cena, setCena]         = useState('')
+  const [icalUrl, setIcalUrl]   = useState('')
   const name = profile?.ime?.split(' ')[0] || 'te'
 
   async function sacuvajApartman() {
     if (!naziv.trim()) { setError('Naziv je obavezan'); return }
     setSaving(true); setError('')
     const { data, error: err } = await supabase.from('apartmani').insert([{
-      naziv: naziv.trim(),
-      lokacija: lokacija.trim(),
-      cena_po_noci: parseFloat(cena) || 50,
-      boja: '#01696f',
-      kapacitet: 2,
+      naziv: naziv.trim(), lokacija: lokacija.trim(),
+      cena_po_noci: parseFloat(cena) || 50, boja: '#01696f', kapacitet: 2,
     }]).select().single()
     setSaving(false)
     if (err) { setError(err.message); return }
-    onApartmanCreated(data)
-    setKorak(2)
+    onApartmanCreated(data); setKorak(2)
   }
 
   async function sacuvajIcal() {
-    if (!icalUrl.trim() || !icalAptId) { setError('Unesi iCal URL i izaberi apartman'); return }
+    if (!icalUrl.trim()) { setError('Unesi iCal URL'); return }
     setSaving(true); setError('')
-    const { error: err } = await supabase.from('apartmani').update({ ical_url: icalUrl.trim() }).eq('id', icalAptId)
+    const { data: apts } = await supabase.from('apartmani').select('id').limit(1)
+    const { error: err } = await supabase.from('apartmani').update({ ical_url: icalUrl.trim() }).eq('id', apts?.[0]?.id)
     setSaving(false)
     if (err) { setError(err.message); return }
-    onApartmanCreated() // refresh
-    setKorak('done')
+    onApartmanCreated(); setKorak('done')
   }
-
-  const steps = [
-    { n: 1, label: 'Dodaj apartman',       icon: Home    },
-    { n: 2, label: 'Dodaj rezervaciju',    icon: CalendarCheck },
-    { n: 3, label: 'Poveži Booking.com',   icon: Link    },
-  ]
 
   if (korak === 'done') return (
     <div className="min-h-[80vh] flex flex-col items-center justify-center p-8 text-center">
       <div className="text-6xl mb-4">🎉</div>
       <h2 className="text-2xl font-black text-slate-800 dark:text-white mb-2">Sve je podešeno!</h2>
-      <p className="text-slate-400 mb-6">HostOS je spreman za rad. Otvori dashboard.</p>
+      <p className="text-slate-400 mb-6">HostOS je spreman za rad.</p>
       <button onClick={() => window.location.reload()} className="px-6 py-3 rounded-2xl text-white font-bold" style={{ backgroundColor: '#01696f' }}>
         Idi na Dashboard →
       </button>
     </div>
   )
 
+  const pct = korak === 1 ? 5 : korak === 2 ? 33 : 66
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800 flex flex-col items-center justify-center p-4">
       <div className="w-full max-w-lg">
-
-        {/* Header */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl mb-4 text-2xl" style={{ backgroundColor: '#01696f20' }}>
-            🏠
-          </div>
-          <h1 className="text-2xl font-black text-slate-800 dark:text-white">
-            Dobrodošao{name !== 'te' ? `, ${name}` : ''}!
-          </h1>
-          <p className="text-slate-400 mt-1 text-sm">
-            Podesite HostOS za 2 minuta — 3 koraka.
-          </p>
+          <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl mb-4 text-2xl" style={{ backgroundColor: '#01696f20' }}>🏠</div>
+          <h1 className="text-2xl font-black text-slate-800 dark:text-white">Dobrodošao{name !== 'te' ? `, ${name}` : ''}!</h1>
+          <p className="text-slate-400 mt-1 text-sm">Podesite HostOS za 2 minuta.</p>
         </div>
-
-        {/* Progress bar */}
-        <div className="mb-6">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-xs font-bold text-slate-400 uppercase tracking-wide">Napredak</span>
-            <span className="text-xs font-bold" style={{ color: '#01696f' }}>
-              {korak === 1 ? 0 : korak === 2 ? 1 : 2} / 3
-            </span>
-          </div>
-          <div className="w-full h-2 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
-            <div
-              className="h-full rounded-full transition-all duration-500"
-              style={{
-                backgroundColor: '#01696f',
-                width: korak === 1 ? '5%' : korak === 2 ? '33%' : '66%'
-              }}
-            />
-          </div>
-          <div className="flex justify-between mt-2">
-            {steps.map(s => (
-              <div key={s.n} className="flex items-center gap-1">
-                {korak > s.n
-                  ? <CheckCircle2 size={14} style={{ color: '#01696f' }} />
-                  : korak === s.n
-                    ? <Circle size={14} style={{ color: '#01696f' }} />
-                    : <Circle size={14} className="text-slate-300 dark:text-slate-600" />
-                }
-                <span className={`text-[11px] font-medium hidden sm:block ${
-                  korak >= s.n ? 'text-slate-600 dark:text-slate-300' : 'text-slate-300 dark:text-slate-600'
-                }`}>{s.label}</span>
-              </div>
-            ))}
-          </div>
+        <div className="w-full h-2 bg-slate-200 dark:bg-slate-700 rounded-full mb-6">
+          <div className="h-full rounded-full transition-all duration-500" style={{ backgroundColor: '#01696f', width: `${pct}%` }} />
         </div>
-
-        {/* Step cards */}
         <div className="space-y-3">
-
-          {/* ── STEP 1: Apartman ── */}
-          <div className={`rounded-2xl border overflow-hidden transition-all duration-300 ${
-            korak === 1
-              ? 'border-teal-300 dark:border-teal-700 shadow-lg shadow-teal-100 dark:shadow-none'
-              : korak > 1
-                ? 'border-emerald-200 dark:border-emerald-800 bg-emerald-50 dark:bg-emerald-900/20'
-                : 'border-slate-200 dark:border-slate-700 opacity-50'
-          } bg-white dark:bg-slate-800`}>
-            <div className="p-4">
-              <div className="flex items-center gap-3 mb-1">
-                {korak > 1
-                  ? <CheckCircle2 size={20} style={{ color: '#10b981' }} />
-                  : <div className="w-6 h-6 rounded-full flex items-center justify-center text-xs font-black text-white" style={{ backgroundColor: '#01696f' }}>1</div>
-                }
-                <span className="font-bold text-slate-800 dark:text-white">Dodaj prvi apartman</span>
-              </div>
-              <p className="text-xs text-slate-400 ml-9">Naziv, lokacija i cena po noći</p>
+          {/* Step 1 */}
+          <div className={`rounded-2xl border bg-white dark:bg-slate-800 overflow-hidden transition-all ${korak === 1 ? 'border-teal-300 dark:border-teal-700 shadow-lg' : korak > 1 ? 'border-emerald-200 dark:border-emerald-800' : 'border-slate-200 dark:border-slate-700 opacity-50'}`}>
+            <div className="p-4 flex items-center gap-3">
+              {korak > 1 ? <CheckCircle2 size={20} style={{ color: '#10b981' }} /> : <div className="w-6 h-6 rounded-full flex items-center justify-center text-xs font-black text-white" style={{ backgroundColor: '#01696f' }}>1</div>}
+              <div><p className="font-bold text-slate-800 dark:text-white">Dodaj prvi apartman</p><p className="text-xs text-slate-400">Naziv, lokacija i cena po noći</p></div>
             </div>
-
             {korak === 1 && (
-              <div className="px-4 pb-4 space-y-3">
-                <div className="h-px bg-slate-100 dark:bg-slate-700 -mx-4 mb-4" />
-                <div>
-                  <label className="text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1 block">Naziv apartmana *</label>
-                  <input
-                    value={naziv} onChange={e => setNaziv(e.target.value)}
-                    placeholder="npr. Studio Centar"
-                    className="w-full px-4 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 text-slate-800 dark:text-white"
-                  />
-                </div>
-                <div>
-                  <label className="text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1 block">Lokacija</label>
-                  <input
-                    value={lokacija} onChange={e => setLokacija(e.target.value)}
-                    placeholder="npr. Beograd, Knez Mihajlova 5"
-                    className="w-full px-4 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 text-slate-800 dark:text-white"
-                  />
-                </div>
-                <div>
-                  <label className="text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1 block">Cena po noći (€)</label>
-                  <input
-                    type="number" value={cena} onChange={e => setCena(e.target.value)}
-                    placeholder="50"
-                    className="w-full px-4 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 text-slate-800 dark:text-white"
-                  />
-                </div>
+              <div className="px-4 pb-4 space-y-3 border-t border-slate-100 dark:border-slate-700 pt-4">
+                <input value={naziv} onChange={e => setNaziv(e.target.value)} placeholder="Naziv apartmana *" className="w-full px-4 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 text-slate-800 dark:text-white" />
+                <input value={lokacija} onChange={e => setLokacija(e.target.value)} placeholder="Lokacija" className="w-full px-4 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 text-slate-800 dark:text-white" />
+                <input type="number" value={cena} onChange={e => setCena(e.target.value)} placeholder="Cena po noći (€)" className="w-full px-4 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 text-slate-800 dark:text-white" />
                 {error && <p className="text-xs text-red-500">{error}</p>}
-                <button
-                  onClick={sacuvajApartman}
-                  disabled={saving || !naziv.trim()}
-                  className="w-full py-3 rounded-xl text-white font-bold text-sm transition-opacity disabled:opacity-50"
-                  style={{ backgroundColor: '#01696f' }}>
-                  {saving ? 'Čuvam...' : 'Dodaj apartman →'}
-                </button>
+                <button onClick={sacuvajApartman} disabled={saving || !naziv.trim()} className="w-full py-3 rounded-xl text-white font-bold text-sm disabled:opacity-50" style={{ backgroundColor: '#01696f' }}>{saving ? 'Čuvam...' : 'Dodaj apartman →'}</button>
               </div>
             )}
           </div>
-
-          {/* ── STEP 2: Rezervacija ── */}
-          <div className={`rounded-2xl border overflow-hidden transition-all duration-300 bg-white dark:bg-slate-800 ${
-            korak === 2
-              ? 'border-teal-300 dark:border-teal-700 shadow-lg shadow-teal-100 dark:shadow-none'
-              : korak > 2
-                ? 'border-emerald-200 dark:border-emerald-800 bg-emerald-50 dark:bg-emerald-900/20'
-                : 'border-slate-200 dark:border-slate-700 opacity-50'
-          }`}>
-            <div className="p-4">
-              <div className="flex items-center gap-3 mb-1">
-                {korak > 2
-                  ? <CheckCircle2 size={20} style={{ color: '#10b981' }} />
-                  : <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-black ${korak === 2 ? 'text-white' : 'text-slate-400 bg-slate-200 dark:bg-slate-700'}`}
-                      style={korak === 2 ? { backgroundColor: '#01696f' } : {}}>2</div>
-                }
-                <span className="font-bold text-slate-800 dark:text-white">Dodaj prvu rezervaciju</span>
-              </div>
-              <p className="text-xs text-slate-400 ml-9">Ručno unesi ili uvezi iz Booking-a</p>
+          {/* Step 2 */}
+          <div className={`rounded-2xl border bg-white dark:bg-slate-800 overflow-hidden transition-all ${korak === 2 ? 'border-teal-300 dark:border-teal-700 shadow-lg' : 'border-slate-200 dark:border-slate-700 opacity-50'}`}>
+            <div className="p-4 flex items-center gap-3">
+              <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-black ${korak === 2 ? 'text-white' : 'text-slate-400 bg-slate-200 dark:bg-slate-700'}`} style={korak === 2 ? { backgroundColor: '#01696f' } : {}}>2</div>
+              <div><p className="font-bold text-slate-800 dark:text-white">Dodaj prvu rezervaciju</p><p className="text-xs text-slate-400">Ručno ili uvezi iz Booking-a</p></div>
             </div>
-
             {korak === 2 && (
-              <div className="px-4 pb-4">
-                <div className="h-px bg-slate-100 dark:bg-slate-700 -mx-4 mb-4" />
-                <div className="grid grid-cols-2 gap-3">
-                  <button
-                    onClick={() => { onNavigate('rezervacije'); }}
-                    className="flex flex-col items-center gap-2 p-4 rounded-xl border-2 border-teal-200 dark:border-teal-700 bg-teal-50 dark:bg-teal-900/20 hover:border-teal-400 transition-colors">
-                    <Plus size={22} style={{ color: '#01696f' }} />
-                    <span className="text-xs font-bold text-slate-700 dark:text-slate-200 text-center">Unesi ručno</span>
-                  </button>
-                  <button
-                    onClick={() => setKorak(3)}
-                    className="flex flex-col items-center gap-2 p-4 rounded-xl border-2 border-slate-200 dark:border-slate-700 hover:border-slate-300 transition-colors">
-                    <Link size={22} className="text-slate-400" />
-                    <span className="text-xs font-bold text-slate-500 text-center">Preskočim, idu iz Booking-a</span>
-                  </button>
-                </div>
-                <button
-                  onClick={() => setKorak(3)}
-                  className="w-full mt-3 text-xs text-slate-400 hover:text-slate-600 transition-colors py-1">
-                  Preskočim ovaj korak →
+              <div className="px-4 pb-4 border-t border-slate-100 dark:border-slate-700 pt-4 grid grid-cols-2 gap-3">
+                <button onClick={() => { onNavigate('rezervacije') }} className="flex flex-col items-center gap-2 p-4 rounded-xl border-2 border-teal-200 dark:border-teal-700 bg-teal-50 dark:bg-teal-900/20">
+                  <Plus size={22} style={{ color: '#01696f' }} /><span className="text-xs font-bold text-slate-700 dark:text-slate-200">Unesi ručno</span>
                 </button>
+                <button onClick={() => setKorak(3)} className="flex flex-col items-center gap-2 p-4 rounded-xl border-2 border-slate-200 dark:border-slate-700">
+                  <Link size={22} className="text-slate-400" /><span className="text-xs font-bold text-slate-500 text-center">Poveži Booking</span>
+                </button>
+                <button onClick={() => setKorak(3)} className="col-span-2 text-xs text-slate-400 py-1">Preskočim →</button>
               </div>
             )}
           </div>
-
-          {/* ── STEP 3: iCal ── */}
-          <div className={`rounded-2xl border overflow-hidden transition-all duration-300 bg-white dark:bg-slate-800 ${
-            korak === 3
-              ? 'border-teal-300 dark:border-teal-700 shadow-lg shadow-teal-100 dark:shadow-none'
-              : 'border-slate-200 dark:border-slate-700 opacity-50'
-          }`}>
-            <div className="p-4">
-              <div className="flex items-center gap-3 mb-1">
-                <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-black ${korak === 3 ? 'text-white' : 'text-slate-400 bg-slate-200 dark:bg-slate-700'}`}
-                  style={korak === 3 ? { backgroundColor: '#01696f' } : {}}>3</div>
-                <span className="font-bold text-slate-800 dark:text-white">Poveži Booking.com</span>
-              </div>
-              <p className="text-xs text-slate-400 ml-9">Automatski uvoz rezervacija putem iCal linka</p>
+          {/* Step 3 */}
+          <div className={`rounded-2xl border bg-white dark:bg-slate-800 overflow-hidden transition-all ${korak === 3 ? 'border-teal-300 dark:border-teal-700 shadow-lg' : 'border-slate-200 dark:border-slate-700 opacity-50'}`}>
+            <div className="p-4 flex items-center gap-3">
+              <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-black ${korak === 3 ? 'text-white' : 'text-slate-400 bg-slate-200 dark:bg-slate-700'}`} style={korak === 3 ? { backgroundColor: '#01696f' } : {}}>3</div>
+              <div><p className="font-bold text-slate-800 dark:text-white">Poveži Booking.com</p><p className="text-xs text-slate-400">Automatski uvoz putem iCal linka</p></div>
             </div>
-
             {korak === 3 && (
-              <div className="px-4 pb-4 space-y-3">
-                <div className="h-px bg-slate-100 dark:bg-slate-700 -mx-4 mb-4" />
-                <div className="p-3 bg-blue-50 dark:bg-blue-900/20 rounded-xl text-xs text-blue-700 dark:text-blue-300">
-                  <strong>Kako doći do iCal linka?</strong><br/>
-                  Booking.com → Extranet → Kalendar → iCal link → kopiraj
-                </div>
-                <div>
-                  <label className="text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1 block">iCal URL</label>
-                  <input
-                    value={icalUrl} onChange={e => setIcalUrl(e.target.value)}
-                    placeholder="https://admin.booking.com/hotel/hoteladmin/ical.html?..."
-                    className="w-full px-4 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 text-slate-800 dark:text-white"
-                  />
-                </div>
+              <div className="px-4 pb-4 border-t border-slate-100 dark:border-slate-700 pt-4 space-y-3">
+                <div className="p-3 bg-blue-50 dark:bg-blue-900/20 rounded-xl text-xs text-blue-700 dark:text-blue-300"><strong>Kako?</strong> Booking.com → Extranet → Kalendar → iCal link</div>
+                <input value={icalUrl} onChange={e => setIcalUrl(e.target.value)} placeholder="https://admin.booking.com/hotel/..." className="w-full px-4 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 text-slate-800 dark:text-white" />
                 {error && <p className="text-xs text-red-500">{error}</p>}
-                <button
-                  onClick={sacuvajIcal}
-                  disabled={saving || !icalUrl.trim()}
-                  className="w-full py-3 rounded-xl text-white font-bold text-sm transition-opacity disabled:opacity-50"
-                  style={{ backgroundColor: '#01696f' }}>
-                  {saving ? 'Čuvam...' : 'Poveži Booking →'}
-                </button>
-                <button
-                  onClick={() => setKorak('done')}
-                  className="w-full text-xs text-slate-400 hover:text-slate-600 transition-colors py-1">
-                  Preskočim, podesite ću kasnije →
-                </button>
+                <button onClick={sacuvajIcal} disabled={saving || !icalUrl.trim()} className="w-full py-3 rounded-xl text-white font-bold text-sm disabled:opacity-50" style={{ backgroundColor: '#01696f' }}>{saving ? 'Čuvam...' : 'Poveži →'}</button>
+                <button onClick={() => setKorak('done')} className="w-full text-xs text-slate-400 py-1">Preskočim →</button>
               </div>
             )}
           </div>
-
         </div>
       </div>
     </div>
   )
 }
 
-// ─── Onboarding: compact top banner ───────────────────────────────────────────
-function OnboardingBanner({ steps, onNavigate, onDismiss }) {
-  const completed   = steps.filter(s => s.done).length
-  const nextStep    = steps.find(s => !s.done)
-  const pct         = Math.round((completed / steps.length) * 100)
-
+// ─── Action Card: Arrival ──────────────────────────────────────────────────────
+function ArrivalCard({ r, apt }) {
+  const nights = noći(r.dolazak, r.odlazak)
   return (
-    <div className="bg-white dark:bg-slate-800 border border-teal-200 dark:border-teal-800 rounded-2xl p-4 shadow-sm">
-      <div className="flex items-center justify-between mb-3">
-        <div className="flex items-center gap-2">
-          <span className="text-sm font-bold text-slate-800 dark:text-white">Podešavanje</span>
-          <span className="text-xs font-bold px-2 py-0.5 rounded-full text-white" style={{ backgroundColor: '#01696f' }}>
-            {completed}/{steps.length}
-          </span>
+    <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700 shadow-sm overflow-hidden active:scale-[0.99] transition-transform">
+      {/* Top accent */}
+      <div className="h-[3px]" style={{ backgroundColor: apt?.boja || '#0d9488' }} />
+      <div className="p-4">
+        {/* Meta row */}
+        <div className="flex items-center justify-between mb-2">
+          <div className="flex items-center gap-1.5">
+            <div className="w-2 h-2 rounded-full" style={{ backgroundColor: apt?.boja || '#0d9488' }} />
+            <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">{apt?.naziv || '—'}</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-bold text-teal-600 dark:text-teal-400 bg-teal-50 dark:bg-teal-900/30 px-2 py-0.5 rounded-full">↓ 14:00</span>
+          </div>
         </div>
-        <button onClick={onDismiss} className="text-slate-300 hover:text-slate-500 transition-colors">
-          <X size={16} />
-        </button>
-      </div>
+        {/* Guest */}
+        <p className="text-lg font-black text-slate-800 dark:text-white leading-tight">{r.gost}</p>
+        <p className="text-xs text-slate-400 mt-0.5">{r.brGostiju || 1} gostiju · {nights} {nights === 1 ? 'noć' : nights < 5 ? 'noći' : 'noći'} · <span className="font-semibold text-slate-600 dark:text-slate-300">€{r.cena}</span></p>
+        {r.napomena && <p className="text-xs text-amber-600 dark:text-amber-400 mt-1 bg-amber-50 dark:bg-amber-900/20 px-2 py-1 rounded-lg">📝 {r.napomena}</p>}
 
-      {/* Progress bar */}
-      <div className="w-full h-1.5 bg-slate-100 dark:bg-slate-700 rounded-full mb-3">
-        <div className="h-full rounded-full transition-all duration-500" style={{ backgroundColor: '#01696f', width: `${pct}%` }} />
-      </div>
-
-      {/* Step list */}
-      <div className="space-y-1.5">
-        {steps.map((s, i) => {
-          const Ik = s.Ikona
-          return (
-            <div key={s.id} className={`flex items-center gap-3 p-2.5 rounded-xl transition-colors ${
-              s.done ? 'opacity-60' : 'bg-slate-50 dark:bg-slate-700/50'
-            }`}>
-              {s.done
-                ? <CheckCircle2 size={16} style={{ color: '#10b981' }} />
-                : <Circle size={16} className="text-slate-300 dark:text-slate-600" />
-              }
-              <span className={`text-sm flex-1 ${s.done ? 'line-through text-slate-400' : 'text-slate-700 dark:text-slate-200'}`}>
-                {s.label}
-              </span>
-              {!s.done && s.navigateTo && (
-                <button
-                  onClick={() => onNavigate(s.navigateTo)}
-                  className="text-xs font-bold px-3 py-1 rounded-lg text-white"
-                  style={{ backgroundColor: '#01696f' }}>
-                  Uradi →
-                </button>
-              )}
+        {/* Actions */}
+        <div className="flex gap-2 mt-3">
+          {r.kontakt ? (
+            <>
+              <a
+                href={waMsg(r.kontakt, checkinTemplate(r, apt))}
+                target="_blank" rel="noreferrer"
+                className="flex-1 py-2.5 bg-green-500 hover:bg-green-600 active:bg-green-700 text-white text-xs font-bold rounded-xl flex items-center justify-center gap-1.5 transition-colors"
+              >
+                <MessageCircle size={13} /> Check-in info
+              </a>
+              <a
+                href={viberUrl(r.kontakt)}
+                className="w-11 h-10 bg-purple-500 hover:bg-purple-600 text-white rounded-xl flex items-center justify-center transition-colors flex-shrink-0"
+              >
+                <PhoneCall size={14} />
+              </a>
+              <a
+                href={`tel:${r.kontakt}`}
+                className="w-11 h-10 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-600 dark:text-slate-300 rounded-xl flex items-center justify-center transition-colors flex-shrink-0"
+              >
+                <Phone size={14} />
+              </a>
+            </>
+          ) : (
+            <div className="flex-1 py-2.5 bg-slate-50 dark:bg-slate-700/50 text-slate-400 text-xs rounded-xl text-center">
+              Dodaj kontakt za slanje poruka
             </div>
-          )
-        })}
-      </div>
-    </div>
-  )
-}
-
-// ─── Stat Tile ─────────────────────────────────────────────────────────────────
-function StatTile({ label, value, sub, boja, alert: isAlert, Ikona, puls }) {
-  return (
-    <div className={`relative overflow-hidden rounded-2xl bg-white dark:bg-slate-800 border shadow-sm flex flex-col gap-1 p-4 min-w-0
-      ${isAlert ? 'border-red-300 dark:border-red-700' : 'border-slate-100 dark:border-slate-700'}`}>
-      <div className="absolute top-0 left-0 right-0 h-[3px] rounded-t-2xl" style={{ backgroundColor: boja }} />
-      <div className="flex items-center justify-between mb-1">
-        <div className="w-8 h-8 rounded-xl flex items-center justify-center" style={{ backgroundColor: boja + '18' }}>
-          <Ikona size={15} style={{ color: boja }} />
+          )}
         </div>
-        {puls && (
-          <span className="flex h-2 w-2 relative">
-            <span className="animate-ping absolute inline-flex h-2 w-2 rounded-full bg-red-400 opacity-75" />
-            <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500" />
-          </span>
-        )}
       </div>
-      <p className="text-2xl font-black text-slate-800 dark:text-white tabular-nums leading-none">{value}</p>
-      <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-wide">{label}</p>
-      {sub && <p className="text-xs text-slate-400 truncate mt-0.5">{sub}</p>}
     </div>
   )
 }
 
-// ─── Timeline item ─────────────────────────────────────────────────────────────
-function TimelineItem({ item, apartmani }) {
-  const apt = item.rez
-    ? apartmani.find(a => a.id === item.rez.apartmanId)
-    : apartmani.find(a => a.id === item.task?.apartman_id)
-  const tel = item.rez?.kontakt
-
-  const config = {
-    checkin:  { label: 'Check-in',  Ikona: LogIn,    bg: 'bg-teal-50   dark:bg-teal-900/20',   border: 'border-teal-200   dark:border-teal-800',   ikonaBg: 'bg-teal-100   dark:bg-teal-900/40',   ikonaText: 'text-teal-600   dark:text-teal-400'   },
-    checkout: { label: 'Checkout',  Ikona: LogOut,   bg: 'bg-blue-50   dark:bg-blue-900/20',   border: 'border-blue-200   dark:border-blue-800',   ikonaBg: 'bg-blue-100   dark:bg-blue-900/40',   ikonaText: 'text-blue-600   dark:text-blue-400'   },
-    cistenje: { label: 'Čišćenje', Ikona: Sparkles, bg: 'bg-purple-50 dark:bg-purple-900/20', border: 'border-purple-200 dark:border-purple-800', ikonaBg: 'bg-purple-100 dark:bg-purple-900/40', ikonaText: 'text-purple-600 dark:text-purple-400' },
-  }
-  const c = config[item.tip]
-  const { Ikona } = c
-
+// ─── Action Card: Departure ────────────────────────────────────────────────────
+function DepartureCard({ r, apt, onCheckoutConfirm }) {
   return (
-    <div className={`flex gap-4 p-4 rounded-2xl border ${c.bg} ${c.border}`}>
-      <div className="flex flex-col items-center gap-1 flex-shrink-0">
-        <span className="text-xs font-bold text-slate-500 dark:text-slate-400 tabular-nums">{item.vreme}</span>
-        <div className={`w-8 h-8 rounded-xl flex items-center justify-center ${c.ikonaBg}`}>
-          <Ikona size={15} className={c.ikonaText} />
+    <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700 shadow-sm overflow-hidden active:scale-[0.99] transition-transform">
+      <div className="h-[3px] bg-blue-400" />
+      <div className="p-4">
+        <div className="flex items-center justify-between mb-2">
+          <div className="flex items-center gap-1.5">
+            <div className="w-2 h-2 rounded-full" style={{ backgroundColor: apt?.boja || '#3b82f6' }} />
+            <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">{apt?.naziv || '—'}</span>
+          </div>
+          <span className="text-xs font-bold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30 px-2 py-0.5 rounded-full">↑ 11:00</span>
+        </div>
+        <p className="text-lg font-black text-slate-800 dark:text-white leading-tight">{r.gost}</p>
+        <p className="text-xs text-slate-400 mt-0.5">Checkout danas · <span className="font-semibold text-slate-600 dark:text-slate-300">€{r.cena}</span></p>
+        <div className="flex gap-2 mt-3">
+          {r.kontakt ? (
+            <>
+              <a
+                href={waMsg(r.kontakt, checkoutTemplate(r, apt))}
+                target="_blank" rel="noreferrer"
+                className="flex-1 py-2.5 bg-blue-500 hover:bg-blue-600 text-white text-xs font-bold rounded-xl flex items-center justify-center gap-1.5 transition-colors"
+              >
+                <MessageCircle size={13} /> Checkout reminder
+              </a>
+              <a
+                href={viberUrl(r.kontakt)}
+                className="w-11 h-10 bg-purple-500 hover:bg-purple-600 text-white rounded-xl flex items-center justify-center transition-colors flex-shrink-0"
+              >
+                <PhoneCall size={14} />
+              </a>
+            </>
+          ) : (
+            <button
+              onClick={() => onCheckoutConfirm?.(r.id)}
+              className="flex-1 py-2.5 bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 text-xs font-bold rounded-xl flex items-center justify-center gap-1.5 border border-blue-200 dark:border-blue-800 transition-colors"
+            >
+              <CheckCircle2 size={13} /> Potvrdi checkout
+            </button>
+          )}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ─── Cleaning Status Row ───────────────────────────────────────────────────────
+function CleaningRow({ task, apt }) {
+  const statusCfg = {
+    zavrseno: { dot: 'bg-emerald-500', label: 'Završeno ✓', text: 'text-emerald-600 dark:text-emerald-400', bg: 'bg-emerald-50 dark:bg-emerald-900/20' },
+    u_toku:   { dot: 'bg-blue-500 animate-pulse', label: 'U toku…',  text: 'text-blue-600 dark:text-blue-400',    bg: 'bg-blue-50 dark:bg-blue-900/20'    },
+    ceka:     { dot: 'bg-amber-400', label: 'Na čekanju', text: 'text-amber-600 dark:text-amber-400',  bg: 'bg-white dark:bg-slate-800'         },
+  }
+  const s = statusCfg[task.status] || statusCfg.ceka
+  return (
+    <div className={`flex items-center gap-3 px-4 py-3.5 ${s.bg}`}>
+      <div className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${s.dot}`} />
+      <div className="flex items-center gap-2 flex-shrink-0">
+        <div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ backgroundColor: (apt?.boja || '#94a3b8') + '20' }}>
+          <Home size={13} style={{ color: apt?.boja || '#94a3b8' }} />
         </div>
       </div>
       <div className="flex-1 min-w-0">
-        <span className={`text-[10px] font-bold uppercase tracking-wide ${c.ikonaText}`}>{c.label}</span>
-        <p className="text-sm font-semibold text-slate-800 dark:text-white truncate">
-          {item.rez?.gost || apt?.naziv || '—'}
-        </p>
-        <p className="text-xs text-slate-400 truncate">{apt?.naziv || '—'}</p>
+        <p className="text-sm font-semibold text-slate-800 dark:text-white truncate">{apt?.naziv || '—'}</p>
+        <p className="text-xs text-slate-400">{task.vreme || '10:00'}{task.napomena ? ` · ${task.napomena}` : ''}</p>
       </div>
-      {tel && item.tip !== 'cistenje' && (
-        <div className="flex gap-1.5 flex-shrink-0 items-center">
-          <a href={waMsg(tel, item.tip === 'checkin' ? checkinTemplate(item.rez, apt) : checkoutTemplate(item.rez, apt))}
-            target="_blank" rel="noreferrer"
-            className="p-2 rounded-xl bg-white dark:bg-slate-700 hover:bg-green-50 dark:hover:bg-green-900/30 text-slate-400 hover:text-green-600 transition-colors shadow-sm"
-            title="WhatsApp">
-            <MessageCircle size={14} />
-          </a>
-          <a href={viberUrl(tel)}
-            className="p-2 rounded-xl bg-white dark:bg-slate-700 hover:bg-purple-50 dark:hover:bg-purple-900/30 text-slate-400 hover:text-purple-600 transition-colors shadow-sm"
-            title="Viber">
-            <PhoneCall size={14} />
-          </a>
-        </div>
-      )}
-      {item.tip === 'cistenje' && (
-        <div className="flex-shrink-0 flex items-center">
-          <span className={`text-[10px] font-semibold px-2 py-1 rounded-full ${
-            item.task?.status === 'zavrseno' ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400' :
-            item.task?.status === 'u_toku'   ? 'bg-blue-100 text-blue-700'    : 'bg-amber-100 text-amber-700'
-          }`}>
-            {item.task?.status === 'zavrseno' ? 'Završeno' : item.task?.status === 'u_toku' ? 'U toku' : 'Čeka'}
-          </span>
-        </div>
-      )}
+      <span className={`text-xs font-bold flex-shrink-0 ${s.text}`}>{s.label}</span>
     </div>
   )
 }
 
-// ─── Relative time ─────────────────────────────────────────────────────────────
-function relTime(ts) {
-  const diff = Date.now() - new Date(ts).getTime()
-  const m = Math.floor(diff / 60000)
-  if (m < 1)   return 'sada'
-  if (m < 60)  return `pre ${m} min`
-  const h = Math.floor(m / 60)
-  if (h < 24)  return `pre ${h}h`
-  if (h < 48)  return 'juče'
-  return `pre ${Math.floor(h / 24)} dana`
+// ─── Section Header ────────────────────────────────────────────────────────────
+function SectionHeader({ emoji, title, count, boja }) {
+  return (
+    <div className="flex items-center gap-2 px-1 mb-3">
+      <span className="text-base">{emoji}</span>
+      <h2 className="text-sm font-bold text-slate-600 dark:text-slate-300 uppercase tracking-wide">{title}</h2>
+      {count > 0 && (
+        <span className="text-[10px] font-black px-1.5 py-0.5 rounded-full text-white" style={{ backgroundColor: boja || '#01696f' }}>
+          {count}
+        </span>
+      )}
+    </div>
+  )
 }
 
 // ─── Activity Feed ─────────────────────────────────────────────────────────────
@@ -461,53 +309,27 @@ function ActivityFeed({ userId }) {
   useEffect(() => {
     if (!userId) return
     load()
-
-    // Real-time subscription — new activities pop in instantly
-    const channel = supabase
-      .channel(`activity-${userId}`)
-      .on(
-        'postgres_changes',
-        { event: 'INSERT', schema: 'public', table: 'activity_log' },
-        payload => {
-          setAktivnosti(prev => [payload.new, ...prev].slice(0, 20))
-        }
-      )
+    const channel = supabase.channel(`activity-${userId}`)
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'activity_log' },
+        payload => setAktivnosti(prev => [payload.new, ...prev].slice(0, 20)))
       .subscribe()
-
     return () => supabase.removeChannel(channel)
   }, [userId])
 
   async function load() {
-    const { data } = await supabase
-      .from('activity_log')
-      .select('*')
-      .order('created_at', { ascending: false })
-      .limit(20)
+    const { data } = await supabase.from('activity_log').select('*').order('created_at', { ascending: false }).limit(20)
     setAktivnosti(data || [])
     setLoading(false)
   }
 
   const cfg = (tip) => TIP_CONFIG[tip] || { emoji: '•', label: tip, boja: '#94a3b8' }
 
-  if (loading) return (
-    <div className="space-y-3">
-      {[1,2,3,4].map(i => (
-        <div key={i} className="flex items-center gap-3">
-          <div className="skeleton w-8 h-8 rounded-full flex-shrink-0" />
-          <div className="flex-1 space-y-1.5">
-            <div className="skeleton h-3 w-3/4 rounded" />
-            <div className="skeleton h-2.5 w-1/3 rounded" />
-          </div>
-        </div>
-      ))}
-    </div>
-  )
+  if (loading) return <div className="space-y-3">{[1,2,3].map(i => <div key={i} className="flex gap-3"><div className="skeleton w-8 h-8 rounded-full flex-shrink-0" /><div className="flex-1 space-y-1.5"><div className="skeleton h-3 w-3/4 rounded" /><div className="skeleton h-2.5 w-1/3 rounded" /></div></div>)}</div>
 
   if (aktivnosti.length === 0) return (
     <div className="text-center py-8">
       <p className="text-3xl mb-2 opacity-30">📋</p>
-      <p className="text-sm text-slate-400">Nema aktivnosti još</p>
-      <p className="text-xs text-slate-300 dark:text-slate-600 mt-1">Pojavljuju se kad dodaš rezervaciju, završiš čišćenje...</p>
+      <p className="text-sm text-slate-400">Aktivnosti se pojavljuju ovde</p>
     </div>
   )
 
@@ -516,36 +338,17 @@ function ActivityFeed({ userId }) {
       {aktivnosti.map((a, i) => {
         const c = cfg(a.tip)
         return (
-          <div
-            key={a.id}
-            className="flex items-start gap-3 py-3 first:pt-0 last:pb-0 animate-fade-in"
-            style={{ animationDelay: `${i * 30}ms` }}
-          >
-            {/* Icon dot */}
-            <div
-              className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 text-sm mt-0.5"
-              style={{ backgroundColor: c.boja + '18' }}
-            >
+          <div key={a.id} className="flex items-start gap-3 py-3 first:pt-0 last:pb-0 animate-fade-in" style={{ animationDelay: `${i * 30}ms` }}>
+            <div className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 text-sm mt-0.5" style={{ backgroundColor: c.boja + '18' }}>
               <span style={{ fontSize: 15 }}>{c.emoji}</span>
             </div>
-
-            {/* Text */}
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-slate-700 dark:text-slate-200 leading-snug">
-                {a.opis}
-              </p>
-              <p className="text-xs text-slate-400 mt-0.5 tabular-nums">
-                {relTime(a.created_at)}
-              </p>
+              <p className="text-sm font-medium text-slate-700 dark:text-slate-200 leading-snug">{a.opis}</p>
+              <p className="text-xs text-slate-400 mt-0.5">{relTime(a.created_at)}</p>
             </div>
-
-            {/* Live dot for very recent */}
             {Date.now() - new Date(a.created_at).getTime() < 60000 && (
               <div className="flex-shrink-0 mt-2">
-                <span className="flex h-2 w-2">
-                  <span className="animate-ping absolute inline-flex h-2 w-2 rounded-full opacity-75" style={{ backgroundColor: c.boja }} />
-                  <span className="relative inline-flex rounded-full h-2 w-2" style={{ backgroundColor: c.boja }} />
-                </span>
+                <span className="flex h-2 w-2"><span className="animate-ping absolute inline-flex h-2 w-2 rounded-full opacity-75" style={{ backgroundColor: c.boja }} /><span className="relative inline-flex rounded-full h-2 w-2" style={{ backgroundColor: c.boja }} /></span>
               </div>
             )}
           </div>
@@ -566,18 +369,18 @@ function CustomTooltip({ active, payload, label }) {
   )
 }
 
-// ─── Main ──────────────────────────────────────────────────────────────────────
-export default function Dashboard({ apartmani = [], onApartmaniChange, onNavigate }) {
+// ─── Main Dashboard ────────────────────────────────────────────────────────────
+export default function Dashboard({ apartmani = [], onApartmaniChange, onNavigate, syncedRez = [] }) {
   const { user, profile } = useAuth()
   const [rezervacije, setRezervacije] = useState([])
   const [tasks, setTasks]             = useState([])
   const [loading, setLoading]         = useState(true)
-  const [bannerDismissed, setBannerDismissed] = useState(false)
+  const [sutraExpanded, setSutraExpanded] = useState(false)
 
-  const danas   = todayStr()
-  const juce    = yesterdayStr()
-  const sutra   = tomorrowStr()
-  const za7     = in7Days()
+  const danas = todayStr()
+  const juce  = yesterdayStr()
+  const sutra = tomorrowStr()
+  const za7   = in7Days()
 
   useEffect(() => { if (user) load() }, [user])
 
@@ -591,147 +394,116 @@ export default function Dashboard({ apartmani = [], onApartmaniChange, onNavigat
     setLoading(false)
   }
 
-  // ── Onboarding detection ──────────────────────────────────────────────────
+  async function confirmCheckout(rezId) {
+    await supabase.from('rezervacije').update({ status: 'zavrseno' }).eq('id', rezId)
+    await load()
+  }
+
+  // ── Data ──────────────────────────────────────────────────────────────────
+  const sveRez         = [...rezervacije, ...syncedRez.filter(s => !rezervacije.some(r => r.id === s.id))]
+  const danasCheckin   = sveRez.filter(r => r.dolazak === danas && r.status === 'potvrdjeno')
+  const danasCheckout  = sveRez.filter(r => r.odlazak === danas && r.status === 'potvrdjeno')
+  const danasTask      = tasks.filter(t => t.datum === danas)
+  const kasniCheckin   = sveRez.filter(r => r.dolazak === juce && r.odlazak >= danas && r.status === 'potvrdjeno')
+  const sutraCheckins  = sveRez.filter(r => r.dolazak === sutra && r.status === 'potvrdjeno')
+  const sutraTasks     = tasks.filter(t => t.datum === sutra)
+  const alertCistenje  = sutraCheckins.filter(r => !sutraTasks.some(t => t.apartman_id === r.apartmanId))
+  const novacDanas     = danasCheckin.reduce((s, r) => s + (r.cena || 0), 0)
+  const narednih7      = sveRez.filter(r => r.dolazak > danas && r.dolazak <= za7 && r.status === 'potvrdjeno').slice(0, 5)
+  const mesecniPrihod  = sveRez.filter(r => r.dolazak?.startsWith(new Date().toISOString().slice(0,7)) && ['potvrdjeno','zavrseno'].includes(r.status)).reduce((s,r) => s+(r.cena||0), 0)
+
   const hasApartman    = apartmani.length > 0
-  const hasRezervacija = rezervacije.length > 0
-  const hasIcal        = apartmani.some(a => a.ical_url)
+  const hasRezervacija = sveRez.length > 0
+  const onboardingDone = hasApartman && hasRezervacija && apartmani.some(a => a.ical_url)
 
-  const onboardingSteps = [
-    { id: 'apartman',    label: 'Dodaj prvi apartman',     done: hasApartman,    Ikona: Home,           navigateTo: null },
-    { id: 'rezervacija', label: 'Dodaj prvu rezervaciju',  done: hasRezervacija, Ikona: CalendarCheck,  navigateTo: 'rezervacije' },
-    { id: 'ical',        label: 'Poveži Booking.com',      done: hasIcal,        Ikona: Link,           navigateTo: null },
-  ]
-  const completedSteps = onboardingSteps.filter(s => s.done).length
-  const onboardingDone = completedSteps === onboardingSteps.length
-
-  // ── Core metrics ──────────────────────────────────────────────────────────
-  const danasCheckin  = rezervacije.filter(r => r.dolazak === danas && r.status === 'potvrdjeno')
-  const danasCheckout = rezervacije.filter(r => r.odlazak === danas && r.status === 'potvrdjeno')
-  const danasTask     = tasks.filter(t => t.datum === danas)
-  const kasniCheckin  = rezervacije.filter(r => r.dolazak === juce && r.odlazak >= danas && r.status === 'potvrdjeno')
-  const novacDanas    = danasCheckin.reduce((sum, r) => sum + (r.cena || 0), 0)
-
-  // ── Timeline ──────────────────────────────────────────────────────────────
-  const timeline = [
-    ...danasCheckout.map(r => ({ tip: 'checkout', vreme: '11:00', rez: r })),
-    ...danasTask.map(t     => ({ tip: 'cistenje', vreme: t.vreme || '10:00', task: t })),
-    ...danasCheckin.map(r  => ({ tip: 'checkin',  vreme: '14:00', rez: r })),
-  ].sort((a, b) => a.vreme.localeCompare(b.vreme))
-
-  // ── Alerts ────────────────────────────────────────────────────────────────
-  const sutraCheckins = rezervacije.filter(r => r.dolazak === sutra && r.status === 'potvrdjeno')
-  const sutraTasks    = tasks.filter(t => t.datum === sutra)
-  const alertCistenje = sutraCheckins.filter(r => !sutraTasks.some(t => t.apartman_id === r.apartmanId))
-  const alertWifi     = apartmani.filter(a => !a.wifiSifra)
-  const ukupnoAlerti  = kasniCheckin.length + alertCistenje.length + alertWifi.length
-
-  // ── Upcoming ──────────────────────────────────────────────────────────────
-  const narednih7 = rezervacije
-    .filter(r => r.dolazak > danas && r.dolazak <= za7 && r.status === 'potvrdjeno')
-    .slice(0, 5)
-
-  // ── KPI ───────────────────────────────────────────────────────────────────
-  const ovajMesec     = new Date().toISOString().slice(0, 7)
-  const mesecniPrihod = rezervacije
-    .filter(r => r.dolazak?.startsWith(ovajMesec) && ['potvrdjeno', 'zavrseno'].includes(r.status))
-    .reduce((sum, r) => sum + (r.cena || 0), 0)
-
-  // ── Chart ─────────────────────────────────────────────────────────────────
   const chartData = Array.from({ length: 6 }, (_, i) => {
-    const d = new Date()
-    d.setMonth(d.getMonth() - 5 + i)
-    const key    = d.toISOString().slice(0, 7)
-    const prihod = rezervacije.filter(r => r.dolazak?.startsWith(key)).reduce((s, r) => s + (r.cena || 0), 0)
+    const d = new Date(); d.setMonth(d.getMonth() - 5 + i)
+    const key = d.toISOString().slice(0, 7)
+    const prihod = sveRez.filter(r => r.dolazak?.startsWith(key)).reduce((s,r) => s+(r.cena||0), 0)
     return { mesec: d.toLocaleDateString('sr-RS', { month: 'short' }), prihod }
   })
 
   const poz = pozdrav(profile?.ime)
 
-  const tiles = [
-    { label: 'Dolasci',       value: danasCheckin.length,  sub: danasCheckin.length === 0 ? 'Nema danas' : danasCheckin.length === 1 ? danasCheckin[0].gost : `${danasCheckin[0].gost} +${danasCheckin.length-1}`, boja: '#0d9488', Ikona: LogIn,           alert: false, puls: false },
-    { label: 'Odlasci',       value: danasCheckout.length, sub: danasCheckout.length === 0 ? 'Nema danas' : danasCheckout.length === 1 ? danasCheckout[0].gost : `${danasCheckout[0].gost} +${danasCheckout.length-1}`, boja: '#3b82f6', Ikona: LogOut,          alert: false, puls: false },
-    { label: 'Čišćenja',      value: danasTask.length,     sub: danasTask.length === 0 ? 'Nema danas' : `${danasTask.filter(t=>t.status==='zavrseno').length}/${danasTask.length} završeno`, boja: '#8b5cf6', Ikona: Sparkles,        alert: false, puls: false },
-    { label: 'Stiže danas',   value: `€${novacDanas}`,     sub: danasCheckin.length > 0 ? `od ${danasCheckin.length} check-in-a` : 'Nema naplate', boja: '#10b981', Ikona: Euro,            alert: false, puls: false },
-    { label: 'Kasni check-in',value: kasniCheckin.length,  sub: kasniCheckin.length === 0 ? 'Sve ok ✓' : kasniCheckin.length === 1 ? `${kasniCheckin[0].gost}` : `${kasniCheckin.length} gostiju`, boja: kasniCheckin.length > 0 ? '#ef4444' : '#94a3b8', Ikona: Clock, alert: kasniCheckin.length > 0, puls: kasniCheckin.length > 0 },
-    { label: 'Poruke',        value: '—',                  sub: 'Uskoro',                                                    boja: '#f59e0b', Ikona: MessageCircle,   alert: false, puls: false },
+  // ── Urgency ───────────────────────────────────────────────────────────────
+  const urgent = [
+    ...kasniCheckin.map(r => ({ tip: 'kasni', r })),
+    ...alertCistenje.map(r => ({ tip: 'cistenje', r })),
   ]
 
-  // ─── Render ───────────────────────────────────────────────────────────────
-  if (loading) return (
-    <div className="flex items-center justify-center py-20">
-      <div className="w-6 h-6 border-2 border-teal-600 border-t-transparent rounded-full animate-spin" />
-    </div>
-  )
+  // ── Stats strip ───────────────────────────────────────────────────────────
+  const stats = [
+    { label: 'Dolasci',    value: danasCheckin.length,  boja: '#0d9488', Ikona: LogIn,     alert: false },
+    { label: 'Odlasci',    value: danasCheckout.length, boja: '#3b82f6', Ikona: LogOut,    alert: false },
+    { label: 'Čišćenja',   value: danasTask.length,     boja: '#8b5cf6', Ikona: Sparkles,  alert: false },
+    { label: 'Prihod',     value: `€${novacDanas}`,     boja: '#10b981', Ikona: Euro,      alert: false },
+    { label: 'Kasni',      value: kasniCheckin.length,  boja: kasniCheckin.length > 0 ? '#ef4444' : '#94a3b8', Ikona: Clock, alert: kasniCheckin.length > 0 },
+    { label: 'Narednih 7', value: narednih7.length,     boja: '#f59e0b', Ikona: CalendarCheck, alert: false },
+  ]
 
-  // Full onboarding screen when no apartments
-  if (!hasApartman) return (
-    <OnboardingScreen
-      profile={profile}
-      onNavigate={onNavigate}
-      onApartmanCreated={(apt) => { onApartmaniChange?.(); load() }}
-    />
-  )
+  if (loading) return <div className="flex items-center justify-center py-20"><div className="w-6 h-6 border-2 border-teal-600 border-t-transparent rounded-full animate-spin" /></div>
+
+  if (!hasApartman) return <OnboardingScreen profile={profile} onNavigate={onNavigate} onApartmanCreated={(apt) => { onApartmaniChange?.(); load() }} />
 
   return (
-    <div className="p-4 md:p-6 space-y-5 max-w-7xl mx-auto">
-
-      {/* ── Onboarding banner (partial) ── */}
-      {!onboardingDone && !bannerDismissed && (
-        <OnboardingBanner
-          steps={onboardingSteps}
-          onNavigate={onNavigate}
-          onDismiss={() => setBannerDismissed(true)}
-        />
-      )}
+    <div className="p-4 md:p-6 max-w-2xl mx-auto md:max-w-7xl space-y-5">
 
       {/* ── Greeting ── */}
-      <div className="bg-gradient-to-br from-[#01696f] to-[#024f53] rounded-2xl px-6 py-5 shadow-md">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-black text-white">{poz.tekst} <span>{poz.emoji}</span></h1>
-            <p className="text-teal-200 mt-0.5 text-sm capitalize">
-              {new Date().toLocaleDateString('sr-RS', { weekday: 'long', day: 'numeric', month: 'long' })}
-              {timeline.length > 0
-                ? ` · ${timeline.length} ${timeline.length === 1 ? 'stavka' : timeline.length < 5 ? 'stavke' : 'stavki'} danas`
-                : ' · Slobodan dan 🎉'}
-            </p>
-          </div>
-          <div className="text-right hidden sm:block">
-            <p className="text-3xl font-black text-white tabular-nums">€{mesecniPrihod.toLocaleString()}</p>
-            <p className="text-teal-300 text-xs mt-0.5">prihod ovog meseca</p>
-          </div>
+      <div className="rounded-2xl px-5 py-4 shadow-md flex items-center justify-between" style={{ background: 'linear-gradient(135deg, #01696f, #024f53)' }}>
+        <div>
+          <h1 className="text-xl font-black text-white">{poz.tekst} <span>{poz.emoji}</span></h1>
+          <p className="text-teal-200 text-xs mt-0.5 capitalize">
+            {new Date().toLocaleDateString('sr-RS', { weekday: 'long', day: 'numeric', month: 'long' })}
+            {danasCheckin.length + danasCheckout.length + danasTask.length > 0
+              ? ` · ${danasCheckin.length + danasCheckout.length + danasTask.length} stavki danas`
+              : ' · Slobodan dan 🎉'}
+          </p>
+        </div>
+        <div className="text-right">
+          <p className="text-2xl font-black text-white tabular-nums">€{mesecniPrihod.toLocaleString()}</p>
+          <p className="text-teal-300 text-[11px]">ovaj mesec</p>
         </div>
       </div>
 
-      {/* ── 6 Stat tiles ── */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
-        {tiles.map(t => <StatTile key={t.label} {...t} />)}
+      {/* ── Stats strip (horizontal scroll on mobile) ── */}
+      <div className="flex gap-2.5 overflow-x-auto pb-1 -mx-4 px-4 md:mx-0 md:px-0 md:grid md:grid-cols-6" style={{ scrollbarWidth: 'none' }}>
+        {stats.map(s => (
+          <div key={s.label} className={`flex-shrink-0 flex items-center gap-2.5 px-3.5 py-2.5 rounded-2xl bg-white dark:bg-slate-800 border shadow-sm min-w-[110px] md:min-w-0 ${s.alert ? 'border-red-200 dark:border-red-800' : 'border-slate-100 dark:border-slate-700'}`}>
+            <div className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0" style={{ backgroundColor: s.boja + '18' }}>
+              {s.alert
+                ? <span className="flex h-2 w-2"><span className="animate-ping absolute inline-flex h-2 w-2 rounded-full bg-red-400 opacity-75" /><span className="relative inline-flex rounded-full h-2 w-2 bg-red-500" /></span>
+                : <s.Ikona size={14} style={{ color: s.boja }} />
+              }
+            </div>
+            <div className="min-w-0">
+              <p className="text-base font-black text-slate-800 dark:text-white tabular-nums leading-none">{s.value}</p>
+              <p className="text-[10px] text-slate-400 whitespace-nowrap mt-0.5">{s.label}</p>
+            </div>
+          </div>
+        ))}
       </div>
 
-      {/* ── Problem alert banner ── */}
-      {ukupnoAlerti > 0 && (
-        <div className="rounded-2xl overflow-hidden border border-red-200 dark:border-red-800 shadow-sm">
+      {/* ── Urgent banner ── */}
+      {urgent.length > 0 && (
+        <div className="rounded-2xl overflow-hidden border border-red-200 dark:border-red-800">
           <div className="bg-red-500 px-4 py-2.5 flex items-center gap-2">
-            <AlertTriangle size={15} className="text-white flex-shrink-0" />
-            <span className="text-white font-bold text-sm">
-              {ukupnoAlerti === 1 ? '1 problem zahteva pažnju' : `${ukupnoAlerti} problema zahtevaju pažnju`}
-            </span>
+            <AlertTriangle size={14} className="text-white flex-shrink-0" />
+            <span className="text-white font-bold text-sm">{urgent.length === 1 ? '1 problem' : `${urgent.length} problemi`} — pažnja potrebna</span>
           </div>
           <div className="bg-red-50 dark:bg-red-900/20 divide-y divide-red-100 dark:divide-red-900/40">
             {kasniCheckin.map(r => {
               const apt = apartmani.find(a => a.id === r.apartmanId)
               return (
-                <div key={r.id} className="px-4 py-3 flex items-start gap-3">
-                  <AlertCircle size={15} className="text-red-500 flex-shrink-0 mt-0.5" />
-                  <div className="min-w-0 flex-1">
+                <div key={r.id} className="px-4 py-3 flex items-center gap-3">
+                  <AlertCircle size={14} className="text-red-500 flex-shrink-0" />
+                  <div className="flex-1 min-w-0">
                     <p className="text-sm font-semibold text-slate-800 dark:text-white">Kasni check-in — {r.gost}</p>
-                    <p className="text-xs text-slate-500 dark:text-slate-400">Check-in bio {r.dolazak} · boravak do {r.odlazak} · {apt?.naziv || '—'}</p>
+                    <p className="text-xs text-slate-500">{apt?.naziv} · dolazak bio {r.dolazak}</p>
                   </div>
                   {r.kontakt && (
-                    <a href={waMsg(r.kontakt, `Pozdrav ${r.gost}, proveravamo da li ste stigli. Jeste li ok?`)}
-                      target="_blank" rel="noreferrer"
-                      className="flex-shrink-0 p-1.5 rounded-lg bg-green-100 hover:bg-green-200 text-green-700 transition-colors">
-                      <MessageCircle size={13} />
+                    <a href={waMsg(r.kontakt, `Pozdrav ${r.gost}, proveravamo status. Jeste li stigli?`)} target="_blank" rel="noreferrer"
+                      className="flex-shrink-0 w-9 h-9 bg-green-500 text-white rounded-xl flex items-center justify-center active:scale-90 transition-transform">
+                      <MessageCircle size={14} />
                     </a>
                   )}
                 </div>
@@ -740,132 +512,175 @@ export default function Dashboard({ apartmani = [], onApartmaniChange, onNavigat
             {alertCistenje.map(r => {
               const apt = apartmani.find(a => a.id === r.apartmanId)
               return (
-                <div key={r.id} className="px-4 py-3 flex items-start gap-3">
-                  <AlertCircle size={15} className="text-amber-500 flex-shrink-0 mt-0.5" />
-                  <div>
-                    <p className="text-sm font-semibold text-slate-800 dark:text-white">Check-in sutra — nema čišćenja</p>
-                    <p className="text-xs text-slate-500 dark:text-slate-400">{r.gost} · {apt?.naziv}</p>
+                <div key={r.id} className="px-4 py-3 flex items-center gap-3">
+                  <AlertCircle size={14} className="text-amber-500 flex-shrink-0" />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-semibold text-slate-800 dark:text-white">Sutra nema čišćenja!</p>
+                    <p className="text-xs text-slate-500">{r.gost} dolazi sutra · {apt?.naziv}</p>
                   </div>
+                  <button onClick={() => onNavigate('cistacije')}
+                    className="flex-shrink-0 px-3 py-1.5 bg-amber-500 text-white text-xs font-bold rounded-xl active:scale-90 transition-transform">
+                    Dodaj →
+                  </button>
                 </div>
               )
             })}
-            {alertWifi.map(a => (
-              <div key={a.id} className="px-4 py-3 flex items-start gap-3">
-                <AlertCircle size={15} className="text-amber-500 flex-shrink-0 mt-0.5" />
-                <div>
-                  <p className="text-sm font-semibold text-slate-800 dark:text-white">WiFi šifra nije uneta</p>
-                  <p className="text-xs text-slate-500 dark:text-slate-400">{a.naziv} — dodaj u podešavanjima</p>
-                </div>
-              </div>
-            ))}
           </div>
         </div>
       )}
 
-      {/* ── Today's timeline ── */}
-      <div>
-        <h2 className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-3 px-1">Raspored danas</h2>
-        {timeline.length > 0 ? (
-          <div className="space-y-2.5">
-            {timeline.map((item, i) => <TimelineItem key={i} item={item} apartmani={apartmani} />)}
-          </div>
-        ) : (
-          <div className="bg-slate-50 dark:bg-slate-800/50 rounded-2xl p-8 text-center border border-dashed border-slate-200 dark:border-slate-700">
-            <p className="text-2xl mb-2">🎉</p>
-            <p className="text-slate-500 dark:text-slate-400 text-sm font-medium">Slobodan dan — nema check-in-ova ni čišćenja</p>
-          </div>
-        )}
-      </div>
+      {/* ── Main 2-col layout on desktop, single col on mobile ── */}
+      <div className="md:grid md:grid-cols-[1fr_380px] md:gap-5 space-y-5 md:space-y-0">
 
-      {/* ── Activity Feed ── */}
-      <div className="bg-white dark:bg-slate-800 rounded-2xl p-5 shadow-sm border border-slate-100 dark:border-slate-700">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="font-bold text-slate-800 dark:text-white flex items-center gap-2">
-            <span className="relative flex h-2.5 w-2.5">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-teal-400 opacity-75" />
-              <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-teal-500" />
-            </span>
-            Aktivnosti
-          </h2>
-          <span className="text-[10px] font-bold text-teal-600 dark:text-teal-400 uppercase tracking-wide">Live</span>
-        </div>
-        <ActivityFeed userId={user?.id} />
-      </div>
+        {/* ── LEFT: Today Feed ── */}
+        <div className="space-y-5">
 
-      {/* ── Bottom grid ── */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+          {/* Arrivals */}
+          {danasCheckin.length > 0 && (
+            <div>
+              <SectionHeader emoji="🛬" title="Dolasci danas" count={danasCheckin.length} boja="#0d9488" />
+              <div className="space-y-3">
+                {danasCheckin.map(r => <ArrivalCard key={r.id} r={r} apt={apartmani.find(a => a.id === r.apartmanId)} />)}
+              </div>
+            </div>
+          )}
 
-        <div className="bg-white dark:bg-slate-800 rounded-2xl p-5 shadow-sm border border-slate-100 dark:border-slate-700">
-          <h2 className="font-bold text-slate-800 dark:text-white mb-4 flex items-center gap-2">
-            <CalendarCheck size={16} className="text-slate-400" />
-            Narednih 7 dana
-            {narednih7.length > 0 && <span className="ml-auto text-xs font-bold px-2 py-0.5 rounded-full text-white" style={{ backgroundColor: '#01696f' }}>{narednih7.length}</span>}
-          </h2>
-          {narednih7.length === 0
-            ? <p className="text-sm text-slate-400 text-center py-6">Nema rezervacija u narednih 7 dana</p>
-            : <div className="space-y-3">{narednih7.map(r => {
-                const apt = apartmani.find(a => a.id === r.apartmanId)
-                return (
-                  <div key={r.id} className="flex items-center gap-3">
-                    <div className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0" style={{ backgroundColor: (apt?.boja || '#94a3b8') + '20' }}>
-                      <Home size={13} style={{ color: apt?.boja || '#94a3b8' }} />
+          {/* Departures */}
+          {danasCheckout.length > 0 && (
+            <div>
+              <SectionHeader emoji="🛫" title="Odlasci danas" count={danasCheckout.length} boja="#3b82f6" />
+              <div className="space-y-3">
+                {danasCheckout.map(r => <DepartureCard key={r.id} r={r} apt={apartmani.find(a => a.id === r.apartmanId)} onCheckoutConfirm={confirmCheckout} />)}
+              </div>
+            </div>
+          )}
+
+          {/* Cleanings */}
+          {danasTask.length > 0 && (
+            <div>
+              <SectionHeader emoji="🧹" title="Čišćenja danas" count={danasTask.length} boja="#8b5cf6" />
+              <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700 shadow-sm overflow-hidden divide-y divide-slate-100 dark:divide-slate-700">
+                {danasTask.map(t => <CleaningRow key={t.id} task={t} apt={apartmani.find(a => a.id === t.apartman_id)} />)}
+              </div>
+            </div>
+          )}
+
+          {/* Empty day */}
+          {danasCheckin.length === 0 && danasCheckout.length === 0 && danasTask.length === 0 && (
+            <div className="bg-white dark:bg-slate-800 rounded-2xl border border-dashed border-slate-200 dark:border-slate-700 p-10 text-center">
+              <p className="text-3xl mb-2">🎉</p>
+              <p className="font-semibold text-slate-500 dark:text-slate-400">Slobodan dan</p>
+              <p className="text-xs text-slate-400 mt-1">Nema check-in-ova, odlazaka ni čišćenja</p>
+            </div>
+          )}
+
+          {/* Tomorrow preview */}
+          <div>
+            <button
+              onClick={() => setSutraExpanded(!sutraExpanded)}
+              className="flex items-center gap-2 px-1 mb-3 w-full group"
+            >
+              <span className="text-base">📅</span>
+              <h2 className="text-sm font-bold text-slate-600 dark:text-slate-300 uppercase tracking-wide">Sutra</h2>
+              {sutraCheckins.length > 0 && (
+                <span className="text-[10px] font-black px-1.5 py-0.5 rounded-full text-white bg-slate-400">{sutraCheckins.length}</span>
+              )}
+              <ChevronDown size={14} className={`ml-auto text-slate-400 transition-transform duration-200 ${sutraExpanded ? 'rotate-180' : ''}`} />
+            </button>
+
+            {sutraExpanded && (
+              <div className="space-y-3 animate-slide-up">
+                {sutraCheckins.length === 0 ? (
+                  <p className="text-sm text-slate-400 px-1">Nema dolazaka sutra</p>
+                ) : (
+                  sutraCheckins.map(r => <ArrivalCard key={r.id} r={r} apt={apartmani.find(a => a.id === r.apartmanId)} />)
+                )}
+              </div>
+            )}
+
+            {!sutraExpanded && sutraCheckins.length > 0 && (
+              <div className="bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-slate-100 dark:border-slate-700 px-4 py-3 divide-y divide-slate-100 dark:divide-slate-700">
+                {sutraCheckins.map(r => {
+                  const apt = apartmani.find(a => a.id === r.apartmanId)
+                  return (
+                    <div key={r.id} className="flex items-center gap-3 py-2.5 first:pt-0 last:pb-0">
+                      <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: apt?.boja || '#94a3b8' }} />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-semibold text-slate-700 dark:text-slate-200 truncate">{r.gost}</p>
+                        <p className="text-xs text-slate-400">{apt?.naziv}</p>
+                      </div>
+                      <span className="text-xs text-slate-500 dark:text-slate-400 flex-shrink-0">14:00</span>
                     </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-slate-700 dark:text-slate-200 truncate">{r.gost}</p>
-                      <p className="text-xs text-slate-400 truncate">{r.dolazak} · {apt?.naziv}</p>
-                    </div>
-                    <span className="text-xs font-bold text-slate-600 dark:text-slate-300 flex-shrink-0">€{r.cena}</span>
-                  </div>
-                )
-              })}</div>
-          }
-        </div>
-
-        <div className="bg-white dark:bg-slate-800 rounded-2xl p-5 shadow-sm border border-slate-100 dark:border-slate-700">
-          <h2 className="font-bold text-slate-800 dark:text-white mb-4 flex items-center gap-2">
-            <Home size={16} className="text-slate-400" />
-            Apartmani
-          </h2>
-          <div className="space-y-2.5">
-            {apartmani.map(a => {
-              const zauzet  = rezervacije.some(r => r.apartmanId === a.id && r.dolazak <= danas && r.odlazak > danas && r.status === 'potvrdjeno')
-              const sledeci = rezervacije.find(r => r.apartmanId === a.id && r.dolazak > danas && r.status === 'potvrdjeno')
-              return (
-                <div key={a.id} className="flex items-center gap-3 p-3 rounded-xl bg-slate-50 dark:bg-slate-700/50">
-                  <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0" style={{ backgroundColor: a.boja + '20' }}>
-                    <Home size={15} style={{ color: a.boja }} />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-slate-700 dark:text-slate-200 truncate">{a.naziv}</p>
-                    <p className="text-xs text-slate-400 truncate">{sledeci ? `Sledeći: ${sledeci.dolazak}` : 'Slobodan'}</p>
-                  </div>
-                  <span className={`text-[10px] font-bold px-2.5 py-1 rounded-full flex-shrink-0 ${
-                    zauzet ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400' : 'bg-slate-100 text-slate-500 dark:bg-slate-700 dark:text-slate-400'
-                  }`}>{zauzet ? 'Zauzet' : 'Slobodan'}</span>
-                </div>
-              )
-            })}
+                  )
+                })}
+              </div>
+            )}
           </div>
         </div>
 
-        <div className="bg-white dark:bg-slate-800 rounded-2xl p-5 shadow-sm border border-slate-100 dark:border-slate-700">
-          <h2 className="font-bold text-slate-800 dark:text-white flex items-center gap-2">
-            <TrendingUp size={16} className="text-slate-400" />
-            Prihodi
-          </h2>
-          <p className="text-xs text-slate-400 mb-4 mt-0.5">Poslednjih 6 meseci</p>
-          {chartData.every(d => d.prihod === 0)
-            ? <div className="flex items-center justify-center h-36 text-slate-300 dark:text-slate-600 text-sm">Nema podataka</div>
-            : <ResponsiveContainer width="100%" height={150}>
-                <BarChart data={chartData} barGap={4}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" vertical={false} />
-                  <XAxis dataKey="mesec" tick={{ fontSize: 11, fill: '#94a3b8' }} axisLine={false} tickLine={false} />
-                  <YAxis tick={{ fontSize: 11, fill: '#94a3b8' }} axisLine={false} tickLine={false} width={36} tickFormatter={v => `€${v}`} />
-                  <Tooltip content={<CustomTooltip />} />
-                  <Bar dataKey="prihod" name="Prihod" fill="#01696f" radius={[4, 4, 0, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
-          }
+        {/* ── RIGHT: Activity + Stats (desktop only, on mobile shows below) ── */}
+        <div className="space-y-4">
+          {/* Activity feed */}
+          <div className="bg-white dark:bg-slate-800 rounded-2xl p-5 shadow-sm border border-slate-100 dark:border-slate-700">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="font-bold text-slate-800 dark:text-white flex items-center gap-2">
+                <span className="relative flex h-2.5 w-2.5">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-teal-400 opacity-75" />
+                  <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-teal-500" />
+                </span>
+                Aktivnosti
+              </h2>
+              <span className="text-[10px] font-bold text-teal-600 dark:text-teal-400 uppercase tracking-wide">Live</span>
+            </div>
+            <ActivityFeed userId={user?.id} />
+          </div>
+
+          {/* Narednih 7 dana */}
+          {narednih7.length > 0 && (
+            <div className="bg-white dark:bg-slate-800 rounded-2xl p-5 shadow-sm border border-slate-100 dark:border-slate-700">
+              <h2 className="font-bold text-slate-800 dark:text-white mb-4 flex items-center gap-2">
+                <CalendarCheck size={15} className="text-slate-400" /> Narednih 7 dana
+                <span className="ml-auto text-xs font-bold px-2 py-0.5 rounded-full text-white" style={{ backgroundColor: '#01696f' }}>{narednih7.length}</span>
+              </h2>
+              <div className="space-y-3">
+                {narednih7.map(r => {
+                  const apt = apartmani.find(a => a.id === r.apartmanId)
+                  return (
+                    <div key={r.id} className="flex items-center gap-3">
+                      <div className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0" style={{ backgroundColor: (apt?.boja||'#94a3b8')+'20' }}>
+                        <Home size={12} style={{ color: apt?.boja||'#94a3b8' }} />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-slate-700 dark:text-slate-200 truncate">{r.gost}</p>
+                        <p className="text-xs text-slate-400">{r.dolazak} · {apt?.naziv}</p>
+                      </div>
+                      <span className="text-xs font-bold text-slate-600 dark:text-slate-300">€{r.cena}</span>
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* Mini chart */}
+          <div className="bg-white dark:bg-slate-800 rounded-2xl p-5 shadow-sm border border-slate-100 dark:border-slate-700">
+            <h2 className="font-bold text-slate-800 dark:text-white mb-1 flex items-center gap-2">
+              <TrendingUp size={15} className="text-slate-400" /> Prihodi
+            </h2>
+            <p className="text-xs text-slate-400 mb-4">Poslednjih 6 meseci</p>
+            {chartData.every(d => d.prihod === 0)
+              ? <div className="flex items-center justify-center h-28 text-slate-300 dark:text-slate-600 text-sm">Nema podataka</div>
+              : <ResponsiveContainer width="100%" height={130}>
+                  <BarChart data={chartData} barGap={4}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" vertical={false} />
+                    <XAxis dataKey="mesec" tick={{ fontSize: 10, fill: '#94a3b8' }} axisLine={false} tickLine={false} />
+                    <YAxis tick={{ fontSize: 10, fill: '#94a3b8' }} axisLine={false} tickLine={false} width={32} tickFormatter={v => `€${v}`} />
+                    <Tooltip content={<CustomTooltip />} />
+                    <Bar dataKey="prihod" fill="#01696f" radius={[4,4,0,0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+            }
+          </div>
         </div>
 
       </div>
