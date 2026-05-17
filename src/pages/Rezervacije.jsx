@@ -22,62 +22,125 @@ function waUrl(tel) { return `https://wa.me/${tel.replace(/\D/g, '')}` }
 function viberUrl(tel) { return `viber://chat?number=${encodeURIComponent(tel.replace(/[\s\-()]/g, ''))}` }
 
 function RezModal({ forma, setForma, onSacuvaj, onOtkazi, naslov, apartmani }) {
+  // ── Inline kalkulacija ────────────────────────────────────────────────────
+  const apt      = apartmani.find(a => String(a.id) === String(forma.apartmanId))
+  const noćenja  = (forma.dolazak && forma.odlazak)
+    ? Math.max(0, Math.round((new Date(forma.odlazak) - new Date(forma.dolazak)) / 86400000))
+    : 0
+  const cenaPN   = apt?.cenaPoNoci || 0
+  const ukupno   = noćenja * cenaPN
+  const showCalc = noćenja > 0 && cenaPN > 0
+
+  const inputCls = "w-full px-3 py-2 text-sm border border-slate-200 dark:border-slate-600 rounded-lg outline-none focus:border-teal-500 bg-transparent dark:text-white"
+  const selectCls = "w-full px-3 py-2 text-sm border border-slate-200 dark:border-slate-600 rounded-lg outline-none focus:border-teal-500 bg-white dark:bg-slate-800 dark:text-white"
+  const labelCls = "text-xs font-medium text-slate-500 dark:text-slate-400 mb-1 block"
+
   return (
-    <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={onOtkazi}>
-      <div className="bg-white dark:bg-slate-800 rounded-2xl p-6 w-full max-w-md shadow-2xl animate-slide-up" onClick={e => e.stopPropagation()}>
+    <div className="fixed inset-0 bg-black/50 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4" onClick={onOtkazi}>
+      <div className="bg-white dark:bg-slate-800 rounded-t-2xl sm:rounded-2xl p-6 w-full max-w-md shadow-2xl animate-slide-up max-h-[92dvh] overflow-y-auto" onClick={e => e.stopPropagation()}>
         <div className="flex items-center justify-between mb-5">
           <h3 className="font-semibold text-slate-800 dark:text-white">{naslov}</h3>
           <button onClick={onOtkazi} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"><X size={20} /></button>
         </div>
+
         <div className="space-y-3">
+          {/* Ime gosta — autoCapitalize za telefon */}
           <div>
-            <label className="text-xs font-medium text-slate-500 dark:text-slate-400 mb-1 block">Ime gosta</label>
-            <input value={forma.gost} onChange={e => setForma({...forma, gost: e.target.value})} placeholder="Ime i prezime" className="w-full px-3 py-2 text-sm border border-slate-200 dark:border-slate-600 rounded-lg outline-none focus:border-teal-500 bg-transparent dark:text-white" />
+            <label className={labelCls}>Ime gosta</label>
+            <input
+              value={forma.gost}
+              onChange={e => setForma({...forma, gost: e.target.value})}
+              placeholder="Ime i prezime"
+              autoCapitalize="words"
+              autoCorrect="off"
+              className={inputCls}
+            />
           </div>
+
+          {/* Apartman */}
           <div>
-            <label className="text-xs font-medium text-slate-500 dark:text-slate-400 mb-1 block">Apartman</label>
-            <select value={forma.apartmanId} onChange={e => setForma({...forma, apartmanId: e.target.value})} className="w-full px-3 py-2 text-sm border border-slate-200 dark:border-slate-600 rounded-lg outline-none focus:border-teal-500 bg-white dark:bg-slate-800 dark:text-white">
+            <label className={labelCls}>Apartman</label>
+            <select value={forma.apartmanId} onChange={e => setForma({...forma, apartmanId: e.target.value})} className={selectCls}>
               <option value="">Odaberi apartman</option>
               {apartmani.map(a => <option key={a.id} value={a.id}>{a.naziv}</option>)}
             </select>
           </div>
+
+          {/* Datumi */}
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="text-xs font-medium text-slate-500 dark:text-slate-400 mb-1 block">Dolazak</label>
-              <input type="date" value={forma.dolazak} onChange={e => setForma({...forma, dolazak: e.target.value})} className="w-full px-3 py-2 text-sm border border-slate-200 dark:border-slate-600 rounded-lg outline-none focus:border-teal-500 bg-transparent dark:text-white" />
+              <label className={labelCls}>Dolazak</label>
+              <input type="date" value={forma.dolazak} onChange={e => setForma({...forma, dolazak: e.target.value})} className={inputCls} />
             </div>
             <div>
-              <label className="text-xs font-medium text-slate-500 dark:text-slate-400 mb-1 block">Odlazak</label>
-              <input type="date" value={forma.odlazak} onChange={e => setForma({...forma, odlazak: e.target.value})} className="w-full px-3 py-2 text-sm border border-slate-200 dark:border-slate-600 rounded-lg outline-none focus:border-teal-500 bg-transparent dark:text-white" />
+              <label className={labelCls}>Odlazak</label>
+              <input type="date" value={forma.odlazak} onChange={e => setForma({...forma, odlazak: e.target.value})} className={inputCls} />
             </div>
           </div>
+
+          {/* ── Inline kalkulator ── */}
+          {showCalc ? (
+            <div className="flex items-center justify-between px-3.5 py-2.5 rounded-xl bg-teal-50 dark:bg-teal-900/25 border border-teal-200 dark:border-teal-700/50">
+              <span className="text-xs text-teal-700 dark:text-teal-300">
+                {noćenja} {noćenja === 1 ? 'noćenje' : noćenja < 5 ? 'noćenja' : 'noćenja'} × €{cenaPN}
+              </span>
+              <span className="text-sm font-black text-teal-700 dark:text-teal-200">= €{ukupno}</span>
+            </div>
+          ) : (forma.dolazak && forma.odlazak && noćenja <= 0) ? (
+            <div className="px-3.5 py-2.5 rounded-xl bg-red-50 dark:bg-red-900/25 border border-red-200 dark:border-red-700/50">
+              <span className="text-xs text-red-600 dark:text-red-400">⚠ Odlazak mora biti posle dolaska</span>
+            </div>
+          ) : null}
+
+          {/* Br. gostiju + Izvor */}
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="text-xs font-medium text-slate-500 dark:text-slate-400 mb-1 block">Broj gostiju</label>
-              <input type="number" min="1" max="20" value={forma.brGostiju} onChange={e => setForma({...forma, brGostiju: Number(e.target.value)})} className="w-full px-3 py-2 text-sm border border-slate-200 dark:border-slate-600 rounded-lg outline-none focus:border-teal-500 bg-transparent dark:text-white" />
+              <label className={labelCls}>Broj gostiju</label>
+              <input
+                type="number"
+                inputMode="numeric"
+                min="1" max="20"
+                value={forma.brGostiju}
+                onChange={e => setForma({...forma, brGostiju: Number(e.target.value)})}
+                className={inputCls}
+              />
             </div>
             <div>
-              <label className="text-xs font-medium text-slate-500 dark:text-slate-400 mb-1 block">Izvor</label>
-              <select value={forma.izvor} onChange={e => setForma({...forma, izvor: e.target.value})} className="w-full px-3 py-2 text-sm border border-slate-200 dark:border-slate-600 rounded-lg outline-none focus:border-teal-500 bg-white dark:bg-slate-800 dark:text-white">
+              <label className={labelCls}>Izvor</label>
+              <select value={forma.izvor} onChange={e => setForma({...forma, izvor: e.target.value})} className={selectCls}>
                 {['Direktno', 'Booking.com', 'Airbnb'].map(i => <option key={i}>{i}</option>)}
               </select>
             </div>
-            <div>
-              <label className="text-xs font-medium text-slate-500 dark:text-slate-400 mb-1 block">Status</label>
-              <select value={forma.status} onChange={e => setForma({...forma, status: e.target.value})} className="w-full px-3 py-2 text-sm border border-slate-200 dark:border-slate-600 rounded-lg outline-none focus:border-teal-500 bg-white dark:bg-slate-800 dark:text-white">
-                {Object.entries(statusNaziv).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
-              </select>
-            </div>
           </div>
+
+          {/* Status */}
           <div>
-            <label className="text-xs font-medium text-slate-500 dark:text-slate-400 mb-1 block">Kontakt</label>
-            <input value={forma.kontakt} onChange={e => setForma({...forma, kontakt: e.target.value})} placeholder="+381 ..." className="w-full px-3 py-2 text-sm border border-slate-200 dark:border-slate-600 rounded-lg outline-none focus:border-teal-500 bg-transparent dark:text-white" />
+            <label className={labelCls}>Status</label>
+            <select value={forma.status} onChange={e => setForma({...forma, status: e.target.value})} className={selectCls}>
+              {Object.entries(statusNaziv).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+            </select>
           </div>
+
+          {/* Kontakt — type="tel" otvara telefonsku tastaturu */}
           <div>
-            <label className="text-xs font-medium text-slate-500 dark:text-slate-400 mb-1 block">Napomena</label>
-            <textarea value={forma.napomena} onChange={e => setForma({...forma, napomena: e.target.value})} rows={2} className="w-full px-3 py-2 text-sm border border-slate-200 dark:border-slate-600 rounded-lg outline-none focus:border-teal-500 bg-transparent dark:text-white resize-none" />
+            <label className={labelCls}>Kontakt</label>
+            <input
+              type="tel"
+              inputMode="tel"
+              value={forma.kontakt}
+              onChange={e => setForma({...forma, kontakt: e.target.value})}
+              placeholder="+381 ..."
+              className={inputCls}
+            />
+          </div>
+
+          {/* Napomena */}
+          <div>
+            <label className={labelCls}>Napomena</label>
+            <textarea value={forma.napomena} onChange={e => setForma({...forma, napomena: e.target.value})} rows={2} className={`${inputCls} resize-none`} />
           </div>
         </div>
+
         <div className="flex gap-3 mt-5">
           <button onClick={onOtkazi} className="flex-1 py-2 text-sm font-medium text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-600 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors">Otkaži</button>
           <button onClick={onSacuvaj} className="flex-1 py-2 text-sm font-semibold text-white rounded-xl hover:opacity-90 transition-opacity" style={{ backgroundColor: '#01696f' }}>Sačuvaj</button>
