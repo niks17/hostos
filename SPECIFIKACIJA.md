@@ -300,6 +300,27 @@ id, user_id, tip, opis, meta (jsonb), created_at
 - `kooperant` — čita, ne briše, ne menja finansije
 - `cistacica` — vidi samo svoje zadatke čišćenja
 
+### RLS politike za tim-member pristup
+Tim-member pristup (čistačica vidi vlasnikov apartman) zahteva sledeće politike u Supabase:
+
+```sql
+-- Primer za apartmani tabelu (isti patern za rezervacije, cistacke_tasks, transakcije)
+CREATE POLICY "vlasnik_i_tim" ON apartmani
+FOR SELECT USING (
+  auth.uid() = user_id  -- vlasnik vidi svoje
+  OR
+  EXISTS (              -- tim-member vidi vlasnikov
+    SELECT 1 FROM team_members
+    WHERE vlasnik_id = apartmani.user_id
+      AND email = auth.email()
+  )
+);
+
+-- Pisanje ostaje samo za vlasnika
+CREATE POLICY "samo_vlasnik_menja" ON apartmani
+FOR ALL USING (auth.uid() = user_id);
+```
+
 ---
 
 ## 8. UX principi
@@ -328,11 +349,13 @@ id, user_id, tip, opis, meta (jsonb), created_at
 
 | Ograničenje | Napomena |
 |-------------|----------|
-| Jedno korisničko okruženje | Nema multi-tenant (svaki vlasnik = novi Supabase projekat) |
-| iCal uvoz bez proxy-ja | Booking.com blokira direktne fetch pozive iz browsera |
-| PDF bez srpske dijakritike | Helvetica ne podržava č/ć/š/ž — karakteri su normalizovani |
+| RLS za tim-member pristup | Cross-user RLS politike (čistačica vidi vlasnikov apartman) moraju biti manuelno postavljene u Supabase dashboardu — arhitektura je ispravna, politike su kritične |
+| iCal proxy | Implementiran kao Vercel Serverless Function (`/api/sync-ical.js`) — rešeno |
+| PDF bez srpske dijakritike | Helvetica ne podržava č/ć/š/ž — karakteri su normalizovani (latinizovani) |
 | Bez native mobile appa | Web app, nije u App Store/Google Play |
-| Bez real-time sinhronizacije | Podaci se osvežavaju na učitavanju stranice |
+| Bez real-time sinhronizacije | Podaci se osvežavaju na učitavanju stranice, nema WebSocket live updata |
+
+> **Napomena o multi-tenancy:** Aplikacija JE multi-tenant. Jedan Supabase projekat, `user_id` na svim tabelama, RLS politike po korisniku, `team_members` tabela sa `vlasnik_id` za tim-member linking. Svaki novi korisnik koji se registruje automatski dobija izolovane podatke bez ikakve ručne intervencije.
 
 ---
 
