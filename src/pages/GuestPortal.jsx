@@ -262,10 +262,26 @@ export default function GuestPortal({ token }) {
           </Section>
         )}
 
-        {/* Branding */}
-        <div className="text-center pt-4">
-          <p className="text-xs text-slate-300">Powered by <span className="font-bold text-slate-400">HostOS</span></p>
-        </div>
+        {/* Powered by HostOS — organic growth attribution */}
+        <a
+          href="https://hostos-app.vercel.app"
+          target="_blank"
+          rel="noreferrer"
+          className="block mt-6 mx-auto max-w-xs"
+        >
+          <div className="flex items-center gap-3 px-5 py-3.5 rounded-2xl border border-slate-100 bg-white/70 hover:bg-white transition-colors shadow-sm group">
+            <div className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0 text-base" style={{ background: 'linear-gradient(135deg, #01696f, #024f53)' }}>
+              🏠
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-xs font-black text-slate-700 tracking-tight">Powered by HostOS</p>
+              <p className="text-xs text-slate-400 leading-tight">Upravljajte apartmanima lakše</p>
+            </div>
+            <svg className="w-3.5 h-3.5 text-slate-300 group-hover:text-teal-500 transition-colors flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3" />
+            </svg>
+          </div>
+        </a>
       </div>
     </div>
   )
