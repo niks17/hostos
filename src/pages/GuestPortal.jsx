@@ -262,24 +262,41 @@ export default function GuestPortal({ token }) {
           </Section>
         )}
 
-        {/* Powered by HostOS — organic growth attribution */}
+        {/* HostOS marketing footer — organic acquisition */}
         <a
           href="https://hostos-app.vercel.app"
           target="_blank"
           rel="noreferrer"
-          className="block mt-6 mx-auto max-w-xs"
+          className="block mt-8 mx-auto max-w-sm active:scale-95 transition-transform"
         >
-          <div className="flex items-center gap-3 px-5 py-3.5 rounded-2xl border border-slate-100 bg-white/70 hover:bg-white transition-colors shadow-sm group">
-            <div className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0 text-base" style={{ background: 'linear-gradient(135deg, #01696f, #024f53)' }}>
-              🏠
+          <div className="rounded-2xl overflow-hidden shadow-sm group">
+            {/* Top: pitanje koje zakači vlasnika */}
+            <div
+              className="px-5 py-4 text-white"
+              style={{ background: 'linear-gradient(135deg, #01696f 0%, #024f53 100%)' }}
+            >
+              <p className="text-sm font-black leading-snug mb-0.5">
+                Izdajete apartman?
+              </p>
+              <p className="text-xs text-teal-200 leading-relaxed">
+                Upravljajte pametnije uz HostOS — rezervacije, gosti, čišćenja i finansije na jednom mestu.
+              </p>
             </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-xs font-black text-slate-700 tracking-tight">Powered by HostOS</p>
-              <p className="text-xs text-slate-400 leading-tight">Upravljajte apartmanima lakše</p>
+
+            {/* Bottom: CTA */}
+            <div className="flex items-center justify-between px-5 py-3 bg-white border-t-0">
+              <div className="flex items-center gap-2">
+                <div className="w-6 h-6 rounded-lg flex items-center justify-center text-xs" style={{ background: 'linear-gradient(135deg, #01696f, #024f53)' }}>
+                  🏠
+                </div>
+                <span className="text-xs font-black text-slate-600 tracking-tight">HostOS</span>
+                <span className="text-xs text-slate-300">·</span>
+                <span className="text-xs text-slate-400">besplatno probajte</span>
+              </div>
+              <svg className="w-4 h-4 text-slate-300 group-hover:text-teal-500 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3" />
+              </svg>
             </div>
-            <svg className="w-3.5 h-3.5 text-slate-300 group-hover:text-teal-500 transition-colors flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3" />
-            </svg>
           </div>
         </a>
       </div>
