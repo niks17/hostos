@@ -43,13 +43,55 @@ function formatElapsed(seconds) {
   return `${m}min`
 }
 
+// ─── Konfeti čestica ──────────────────────────────────────────────────────────
+const CONFETTI_COLORS = ['#01696f','#10b981','#f59e0b','#3b82f6','#ec4899','#a78bfa','#f97316']
+
+function ConfettiBurst() {
+  const particles = Array.from({ length: 14 }, (_, i) => {
+    const angle  = (i / 14) * 360 + (Math.random() * 20 - 10)
+    const dist   = 38 + Math.random() * 32
+    const tx     = Math.round(Math.cos((angle * Math.PI) / 180) * dist)
+    const ty     = Math.round(Math.sin((angle * Math.PI) / 180) * dist - 10)
+    const size   = 5 + Math.floor(Math.random() * 6)
+    const color  = CONFETTI_COLORS[i % CONFETTI_COLORS.length]
+    const delay  = (Math.random() * 80).toFixed(0) + 'ms'
+    const radius = i % 4 === 0 ? '3px' : '50%'
+    return { tx, ty, size, color, delay, radius }
+  })
+  return (
+    <>
+      {particles.map((p, i) => (
+        <span
+          key={i}
+          className="confetti-particle"
+          style={{
+            left: '18px', top: '18px',
+            width: p.size, height: p.size,
+            backgroundColor: p.color,
+            borderRadius: p.radius,
+            animationDelay: p.delay,
+            '--tx': p.tx + 'px',
+            '--ty': p.ty + 'px',
+          }}
+        />
+      ))}
+    </>
+  )
+}
+
 // ─── Animated Checkbox Item ────────────────────────────────────────────────────
 function ChecklistItem({ stavka, onToggle }) {
-  const [bouncing, setBouncing] = useState(false)
+  const [bouncing,  setBouncing]  = useState(false)
+  const [confetti,  setConfetti]  = useState(false)
 
   function handleTap() {
+    // Konfeti samo kad završavamo (ne kad odčekiramo)
+    if (!stavka.zavrseno) {
+      setConfetti(true)
+      setTimeout(() => setConfetti(false), 800)
+    }
     setBouncing(true)
-    setTimeout(() => setBouncing(false), 300)
+    setTimeout(() => setBouncing(false), 350)
     haptic.tap()
     onToggle()
   }
@@ -59,35 +101,38 @@ function ChecklistItem({ stavka, onToggle }) {
       onClick={handleTap}
       className={`
         w-full flex items-center gap-4 p-4 rounded-2xl border-2
-        transition-all duration-200
-        active:scale-95
+        transition-all duration-200 active:scale-[0.97]
         ${stavka.zavrseno
           ? 'bg-teal-50 dark:bg-teal-900/20 border-teal-200 dark:border-teal-800'
           : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 active:border-teal-300'
         }
       `}
     >
-      {/* Checkbox circle */}
-      <div
-        className={`
-          w-9 h-9 rounded-full border-2 flex items-center justify-center flex-shrink-0
-          transition-all duration-200
-          ${bouncing ? 'scale-125' : 'scale-100'}
-          ${stavka.zavrseno
-            ? 'border-teal-600'
-            : 'border-slate-300 dark:border-slate-600'
-          }
-        `}
-        style={stavka.zavrseno ? { backgroundColor: '#01696f', borderColor: '#01696f' } : {}}
-      >
-        {stavka.zavrseno && (
-          <Check size={17} className="text-white" strokeWidth={3} />
-        )}
+      {/* Checkbox + konfeti omotač */}
+      <div className="relative flex-shrink-0 w-9 h-9">
+        <div
+          className={`
+            w-9 h-9 rounded-full border-2 flex items-center justify-center
+            transition-all duration-200
+            ${bouncing ? 'scale-125' : 'scale-100'}
+            ${stavka.zavrseno
+              ? 'border-teal-600'
+              : 'border-slate-300 dark:border-slate-600'
+            }
+          `}
+          style={stavka.zavrseno ? { backgroundColor: '#01696f', borderColor: '#01696f' } : {}}
+        >
+          {stavka.zavrseno && (
+            <Check size={17} className="text-white" strokeWidth={3} />
+          )}
+        </div>
+        {/* Konfeti čestica — apsolutno u odnosu na checkbox */}
+        {confetti && <ConfettiBurst />}
       </div>
 
       {/* Label */}
       <span className={`
-        text-base font-medium flex-1 text-left leading-snug transition-all duration-200
+        text-base font-semibold flex-1 text-left leading-snug transition-all duration-200
         ${stavka.zavrseno
           ? 'line-through text-slate-400 dark:text-slate-500'
           : 'text-slate-800 dark:text-white'
@@ -365,16 +410,16 @@ function CleanerView({ taskovi, apartmani, toggleStavka, rezervacije }) {
             className={`
               w-full py-5 text-lg font-black rounded-2xl transition-all duration-200
               ${sveZavrseno
-                ? 'text-white shadow-lg shadow-teal-200 dark:shadow-none active:scale-95'
+                ? 'text-white active:scale-95 btn-lock-pulse'
                 : 'bg-slate-100 dark:bg-slate-700 text-slate-400 cursor-not-allowed'
               }
             `}
-            style={sveZavrseno ? { backgroundColor: '#01696f' } : {}}
+            style={sveZavrseno ? { backgroundColor: '#059669' } : {}}
           >
             {saving
-              ? 'Čuvam...'
+              ? '⏳ Čuvam...'
               : sveZavrseno
-                ? '✓  ZAVRŠENO'
+                ? '🔒 ZAKLJUČAJ APARTMAN'
                 : `Još ${task.stavke.length - zavrsenoCount} ${
                     (task.stavke.length - zavrsenoCount) === 1 ? 'stavka' : 'stavke'
                   }`
