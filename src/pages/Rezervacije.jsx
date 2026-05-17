@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react'
+import { useAutoAnimate } from '@formkit/auto-animate/react'
 import { Plus, X, Search, Home, Link, Pencil, Trash2, Phone, MessageCircle, PhoneCall, Zap, ToggleLeft, ToggleRight } from 'lucide-react'
 import { supabase, mapRezervacija, logActivity } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
@@ -189,6 +190,8 @@ export default function Rezervacije({ syncedRez = [], apartmani = [] }) {
     return matchFilter && matchSearch
   })
 
+  const [tbodyRef] = useAutoAnimate({ duration: 200 })
+
   function otvoriNovu() {
     setForma({ ...PRAZNA_FORMA, apartmanId: apartmani[0]?.id || '' })
     setModal('nova')
@@ -345,7 +348,7 @@ export default function Rezervacije({ syncedRez = [], apartmani = [] }) {
                 ))}
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100 dark:divide-slate-700">
+            <tbody ref={tbodyRef} className="divide-y divide-slate-100 dark:divide-slate-700">
               {filtrirane.map(r => {
                 const apt = apartmani.find(a => a.id === r.apartmanId)
                 return (

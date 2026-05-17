@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react'
+import { useAutoAnimate } from '@formkit/auto-animate/react'
 import {
   LogIn, LogOut, Sparkles, AlertTriangle, MessageCircle, PhoneCall,
   Euro, Clock, Home, TrendingUp, CalendarCheck, AlertCircle,
@@ -520,6 +521,10 @@ export default function Dashboard({ apartmani = [], onApartmaniChange, onNavigat
 
   const poz = pozdrav(profile?.ime)
 
+  const [arrivalsRef]   = useAutoAnimate({ duration: 200 })
+  const [departuresRef] = useAutoAnimate({ duration: 200 })
+  const [cleaningRef]   = useAutoAnimate({ duration: 200 })
+
   // ── Urgency ───────────────────────────────────────────────────────────────
   const urgent = [
     ...kasniCheckin.map(r => ({ tip: 'kasni', r })),
@@ -636,7 +641,7 @@ export default function Dashboard({ apartmani = [], onApartmaniChange, onNavigat
           {danasCheckin.length > 0 && (
             <div>
               <SectionHeader emoji="🛬" title="Dolasci danas" count={danasCheckin.length} boja="#0d9488" />
-              <div className="space-y-3">
+              <div ref={arrivalsRef} className="space-y-3">
                 {danasCheckin.map(r => <ArrivalCard key={r.id} r={r} apt={apartmani.find(a => a.id === r.apartmanId)} />)}
               </div>
             </div>
@@ -646,7 +651,7 @@ export default function Dashboard({ apartmani = [], onApartmaniChange, onNavigat
           {danasCheckout.length > 0 && (
             <div>
               <SectionHeader emoji="🛫" title="Odlasci danas" count={danasCheckout.length} boja="#3b82f6" />
-              <div className="space-y-3">
+              <div ref={departuresRef} className="space-y-3">
                 {danasCheckout.map(r => <DepartureCard key={r.id} r={r} apt={apartmani.find(a => a.id === r.apartmanId)} onCheckoutConfirm={confirmCheckout} />)}
               </div>
             </div>
@@ -656,7 +661,7 @@ export default function Dashboard({ apartmani = [], onApartmaniChange, onNavigat
           {danasTask.length > 0 && (
             <div>
               <SectionHeader emoji="🧹" title="Čišćenja danas" count={danasTask.length} boja="#8b5cf6" />
-              <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700 shadow-sm overflow-hidden divide-y divide-slate-100 dark:divide-slate-700">
+              <div ref={cleaningRef} className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700 shadow-sm overflow-hidden divide-y divide-slate-100 dark:divide-slate-700">
                 {danasTask.map(t => <CleaningRow key={t.id} task={t} apt={apartmani.find(a => a.id === t.apartman_id)} />)}
               </div>
             </div>

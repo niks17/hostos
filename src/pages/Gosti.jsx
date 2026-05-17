@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react'
+import { useAutoAnimate } from '@formkit/auto-animate/react'
 import { Search, Phone, Mail, Star, X, Plus, MapPin, Pencil, Trash2, MessageCircle, PhoneCall, ShieldCheck, ShieldAlert } from 'lucide-react'
 import { supabase, mapGost, mapRezervacija, punoIme, eturistaKompletan } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
@@ -165,6 +166,8 @@ export default function Gosti() {
     (g.email || '').toLowerCase().includes(pretraga.toLowerCase())
   )
 
+  const [gostiGridRef] = useAutoAnimate({ duration: 220 })
+
   function otvoriNovog() { setForma(PRAZNA_FORMA); setIzmenaId(null); setModal('novi') }
 
   function otvoriIzmenu(g, e) {
@@ -274,7 +277,7 @@ export default function Gosti() {
       </div>
 
       {/* Kartice */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
+      <div ref={gostiGridRef} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
         {filtrirani.map(g => {
           const ok = eturistaKompletan(g)
           return (

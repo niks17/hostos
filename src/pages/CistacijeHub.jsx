@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react'
+import { useAutoAnimate } from '@formkit/auto-animate/react'
 import {
   CheckSquare, Square, Clock, CheckCheck, AlertCircle, Home,
   Plus, X, Trash2, Pencil, Check, MapPin, Timer, MessageSquare,
@@ -159,7 +160,8 @@ function CleanerView({ taskovi, apartmani, toggleStavka, rezervacije }) {
   const [napomena,   setNapomena]   = useState('')
   const [saving,     setSaving]     = useState(false)
   const [elapsed,    setElapsed]    = useState(0)
-  const startRef = useRef(Date.now())
+  const startRef    = useRef(Date.now())
+  const [listRef]   = useAutoAnimate({ duration: 180 })
 
   const aktivni = taskovi.filter(t => t.status !== 'zavrseno' && t.datum <= danas)
   const task    = aktivni[aktivniIdx] || null
@@ -364,7 +366,7 @@ function CleanerView({ taskovi, apartmani, toggleStavka, rezervacije }) {
       </div>
 
       {/* ── Checklist ── */}
-      <div className="flex-1 px-4 py-4 space-y-3 overflow-y-auto pb-48">
+      <div ref={listRef} className="flex-1 px-4 py-4 space-y-3 overflow-y-auto pb-48">
         {task.stavke.map(stavka => (
           <ChecklistItem
             key={stavka.id}
@@ -556,6 +558,9 @@ export default function CistacijeHub({ apartmani = [] }) {
   const uToku    = taskovi.filter(t => t.status === 'u_toku').length
   const ceka     = taskovi.filter(t => t.status === 'ceka').length
 
+  const [taskGridRef]  = useAutoAnimate({ duration: 220 })
+  const [checklistRef] = useAutoAnimate({ duration: 160 })
+
   const filterTabs = [
     { id: 'sve',      label: 'Sve',      count: taskovi.length },
     { id: 'aktivno',  label: 'Aktivno',  count: uToku + ceka },
@@ -625,7 +630,7 @@ export default function CistacijeHub({ apartmani = [] }) {
         </div>
       )}
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div ref={taskGridRef} className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {filtered.map(task => {
           const apt          = apartmani.find(a => a.id === task.apartmanId)
           const zavrsenoStvk = task.stavke.filter(s => s.zavrseno).length
