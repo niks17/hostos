@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import {
   LogIn, LogOut, Sparkles, AlertTriangle, MessageCircle, PhoneCall,
   Euro, Clock, Home, TrendingUp, CalendarCheck, AlertCircle,
@@ -9,6 +9,28 @@ import GuestPortalModal from '../components/GuestPortalModal'
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts'
 import { supabase, mapRezervacija, TIP_CONFIG } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
+import { haptic } from '../utils/haptics'
+
+// ─── Dynamic background by time of day ────────────────────────────────────────
+function getDobaGradient() {
+  const h = new Date().getHours()
+  if (h >= 5  && h < 10) return {            // Jutro — toplo zlatno
+    bg:  'linear-gradient(135deg, #b45309 0%, #78350f 100%)',
+    sub: 'text-amber-200',
+  }
+  if (h >= 10 && h < 17) return {            // Dan — teal (branding)
+    bg:  'linear-gradient(135deg, #01696f 0%, #024f53 100%)',
+    sub: 'text-teal-200',
+  }
+  if (h >= 17 && h < 21) return {            // Veče — tamno narandžasto
+    bg:  'linear-gradient(135deg, #9a3412 0%, #7c2d12 100%)',
+    sub: 'text-orange-200',
+  }
+  return {                                   // Noć — duboki indigo
+    bg:  'linear-gradient(135deg, #312e81 0%, #1e1b4b 100%)',
+    sub: 'text-indigo-300',
+  }
+}
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 function todayStr()     { return new Date().toISOString().split('T')[0] }
@@ -158,55 +180,108 @@ function OnboardingScreen({ profile, onApartmanCreated, onNavigate }) {
   )
 }
 
-// ─── Action Card: Arrival ──────────────────────────────────────────────────────
+// ─── Action Card: Arrival (swipe-to-action) ───────────────────────────────────
 function ArrivalCard({ r, apt }) {
-  const nights = noći(r.dolazak, r.odlazak)
+  const nights      = noći(r.dolazak, r.odlazak)
+  const hasContact  = !!r.kontakt
+  const THRESHOLD   = 72
+  const MAX_OFFSET  = 92
+
+  const [offset,   setOffset]   = useState(0)
+  const [snapping, setSnapping] = useState(false)
+  const touchStart = useRef(null)
+
+  function onTouchStart(e) {
+    if (!hasContact) return
+    touchStart.current = e.touches[0].clientX
+    setSnapping(false)
+  }
+
+  function onTouchMove(e) {
+    if (touchStart.current === null) return
+    const dx      = e.touches[0].clientX - touchStart.current
+    const clamped = Math.max(-MAX_OFFSET, Math.min(MAX_OFFSET, dx))
+    // Haptic feedback the moment the threshold is crossed
+    if (Math.abs(clamped) >= THRESHOLD && Math.abs(offset) < THRESHOLD) haptic.tap()
+    setOffset(clamped)
+  }
+
+  function onTouchEnd() {
+    if (offset > THRESHOLD && r.kontakt)  window.open(waMsg(r.kontakt, checkinTemplate(r, apt)), '_blank')
+    if (offset < -THRESHOLD && r.kontakt) window.location.href = `tel:${r.kontakt}`
+    touchStart.current = null
+    setSnapping(true)
+    setOffset(0)
+  }
+
+  // Opacity of the reveals scales from 0 → 1 as offset approaches threshold
+  const waAlpha  = Math.min(1, Math.max(0, offset / THRESHOLD))
+  const telAlpha = Math.min(1, Math.max(0, -offset / THRESHOLD))
+
   return (
-    <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700 shadow-sm overflow-hidden active:scale-[0.99] transition-transform">
-      {/* Top accent */}
-      <div className="h-[3px]" style={{ backgroundColor: apt?.boja || '#0d9488' }} />
-      <div className="p-4">
-        {/* Meta row */}
-        <div className="flex items-center justify-between mb-2">
-          <div className="flex items-center gap-1.5">
-            <div className="w-2 h-2 rounded-full" style={{ backgroundColor: apt?.boja || '#0d9488' }} />
-            <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">{apt?.naziv || '—'}</span>
-          </div>
-          <div className="flex items-center gap-2">
+    <div className="relative overflow-hidden rounded-2xl shadow-sm">
+
+      {/* ── WhatsApp reveal (swipe right) ── */}
+      <div
+        className="absolute inset-0 bg-green-500 flex items-center gap-3 pl-5 rounded-2xl pointer-events-none"
+        style={{ opacity: waAlpha }}
+      >
+        <MessageCircle size={26} className="text-white" />
+        <span className="text-white font-black text-sm">Check-in info</span>
+      </div>
+
+      {/* ── Call reveal (swipe left) ── */}
+      <div
+        className="absolute inset-0 bg-blue-500 flex items-center justify-end gap-3 pr-5 rounded-2xl pointer-events-none"
+        style={{ opacity: telAlpha }}
+      >
+        <span className="text-white font-black text-sm">Pozovi</span>
+        <Phone size={26} className="text-white" />
+      </div>
+
+      {/* ── Card (slides on swipe) ── */}
+      <div
+        className="bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-2xl overflow-hidden"
+        style={{
+          transform:  `translateX(${offset}px)`,
+          transition: snapping ? 'transform 0.35s cubic-bezier(0.32,0.72,0,1)' : 'none',
+        }}
+        onTouchStart={onTouchStart}
+        onTouchMove={onTouchMove}
+        onTouchEnd={onTouchEnd}
+      >
+        <div className="h-[3px]" style={{ backgroundColor: apt?.boja || '#0d9488' }} />
+        <div className="p-4">
+          {/* Meta */}
+          <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center gap-1.5">
+              <div className="w-2 h-2 rounded-full" style={{ backgroundColor: apt?.boja || '#0d9488' }} />
+              <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">{apt?.naziv || '—'}</span>
+            </div>
             <span className="text-xs font-bold text-teal-600 dark:text-teal-400 bg-teal-50 dark:bg-teal-900/30 px-2 py-0.5 rounded-full">↓ 14:00</span>
           </div>
-        </div>
-        {/* Guest */}
-        <p className="text-lg font-black text-slate-800 dark:text-white leading-tight">{r.gost}</p>
-        <p className="text-xs text-slate-400 mt-0.5">{r.brGostiju || 1} gostiju · {nights} {nights === 1 ? 'noć' : nights < 5 ? 'noći' : 'noći'} · <span className="font-semibold text-slate-600 dark:text-slate-300">€{r.cena}</span></p>
-        {r.napomena && <p className="text-xs text-amber-600 dark:text-amber-400 mt-1 bg-amber-50 dark:bg-amber-900/20 px-2 py-1 rounded-lg">📝 {r.napomena}</p>}
 
-        {/* Actions */}
-        <div className="flex gap-2 mt-3">
-          {r.kontakt ? (
-            <>
-              <a
-                href={waMsg(r.kontakt, checkinTemplate(r, apt))}
-                target="_blank" rel="noreferrer"
-                className="flex-1 min-h-[48px] bg-green-500 hover:bg-green-600 active:bg-green-700 text-white text-xs font-bold rounded-xl flex items-center justify-center gap-1.5 transition-colors"
-              >
-                <MessageCircle size={13} /> Check-in info
-              </a>
-              <a
-                href={viberUrl(r.kontakt)}
-                className="w-12 h-12 bg-purple-500 hover:bg-purple-600 text-white rounded-xl flex items-center justify-center transition-colors flex-shrink-0"
-              >
-                <PhoneCall size={16} />
-              </a>
-              <a
-                href={`tel:${r.kontakt}`}
-                className="w-12 h-12 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-600 dark:text-slate-300 rounded-xl flex items-center justify-center transition-colors flex-shrink-0"
-              >
-                <Phone size={16} />
-              </a>
-            </>
+          {/* Guest name — krupno, dominantno */}
+          <p className="text-xl font-black text-slate-800 dark:text-white leading-tight">{r.gost}</p>
+          <p className="text-xs text-slate-400 mt-1">
+            {r.brGostiju || 1} gostiju · {nights} {nights === 1 ? 'noć' : 'noći'} ·{' '}
+            <span className="font-semibold text-slate-600 dark:text-slate-300">€{r.cena}</span>
+          </p>
+          {r.napomena && (
+            <p className="text-xs text-amber-600 dark:text-amber-400 mt-1.5 bg-amber-50 dark:bg-amber-900/20 px-2 py-1 rounded-lg">📝 {r.napomena}</p>
+          )}
+
+          {/* Swipe hint / no-contact fallback */}
+          {hasContact ? (
+            <div className="mt-3 flex items-center justify-between select-none">
+              <span className="text-[11px] text-slate-300 dark:text-slate-600 font-medium">← Pozovi</span>
+              <div className="flex gap-1">
+                {[0,1,2].map(i => <div key={i} className="w-1 h-1 rounded-full bg-slate-200 dark:bg-slate-700" />)}
+              </div>
+              <span className="text-[11px] text-slate-300 dark:text-slate-600 font-medium">WA →</span>
+            </div>
           ) : (
-            <div className="flex-1 py-2.5 bg-slate-50 dark:bg-slate-700/50 text-slate-400 text-xs rounded-xl text-center">
+            <div className="mt-3 py-2.5 text-center bg-slate-50 dark:bg-slate-700/50 text-slate-400 text-xs rounded-xl">
               Dodaj kontakt za slanje poruka
             </div>
           )}
@@ -265,14 +340,25 @@ function DepartureCard({ r, apt, onCheckoutConfirm }) {
 // ─── Cleaning Status Row ───────────────────────────────────────────────────────
 function CleaningRow({ task, apt }) {
   const statusCfg = {
-    zavrseno: { dot: 'bg-emerald-500', label: 'Završeno ✓', text: 'text-emerald-600 dark:text-emerald-400', bg: 'bg-emerald-50 dark:bg-emerald-900/20' },
-    u_toku:   { dot: 'bg-blue-500 animate-pulse', label: 'U toku…',  text: 'text-blue-600 dark:text-blue-400',    bg: 'bg-blue-50 dark:bg-blue-900/20'    },
-    ceka:     { dot: 'bg-amber-400', label: 'Na čekanju', text: 'text-amber-600 dark:text-amber-400',  bg: 'bg-white dark:bg-slate-800'         },
+    zavrseno: {
+      pill: 'bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300',
+      label: 'Završeno ✓',
+      row: 'bg-white dark:bg-slate-800',
+    },
+    u_toku: {
+      pill: 'bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300',
+      label: 'U toku…',
+      row: 'bg-blue-50/60 dark:bg-blue-900/10',
+    },
+    ceka: {
+      pill: 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300',
+      label: 'Na čekanju',
+      row: 'bg-white dark:bg-slate-800',
+    },
   }
   const s = statusCfg[task.status] || statusCfg.ceka
   return (
-    <div className={`flex items-center gap-3 px-4 py-3.5 ${s.bg}`}>
-      <div className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${s.dot}`} />
+    <div className={`flex items-center gap-3 px-4 py-3.5 ${s.row}`}>
       <div className="flex items-center gap-2 flex-shrink-0">
         <div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ backgroundColor: (apt?.boja || '#94a3b8') + '20' }}>
           <Home size={13} style={{ color: apt?.boja || '#94a3b8' }} />
@@ -282,7 +368,7 @@ function CleaningRow({ task, apt }) {
         <p className="text-sm font-semibold text-slate-800 dark:text-white truncate">{apt?.naziv || '—'}</p>
         <p className="text-xs text-slate-400">{task.vreme || '10:00'}{task.napomena ? ` · ${task.napomena}` : ''}</p>
       </div>
-      <span className={`text-xs font-bold flex-shrink-0 ${s.text}`}>{s.label}</span>
+      <span className={`text-xs font-bold flex-shrink-0 px-2.5 py-1 rounded-full ${s.pill}`}>{s.label}</span>
     </div>
   )
 }
@@ -458,10 +544,11 @@ export default function Dashboard({ apartmani = [], onApartmaniChange, onNavigat
     <div className="p-4 md:p-6 max-w-2xl mx-auto md:max-w-7xl space-y-5">
 
       {/* ── Greeting ── */}
-      <div className="rounded-2xl px-5 py-4 shadow-md flex items-center justify-between" style={{ background: 'linear-gradient(135deg, #01696f, #024f53)' }}>
+      {(() => { const g = getDobaGradient(); return (
+      <div className="rounded-2xl px-5 py-4 shadow-md flex items-center justify-between" style={{ background: g.bg }}>
         <div>
           <h1 className="text-xl font-black text-white">{poz.tekst} <span>{poz.emoji}</span></h1>
-          <p className="text-teal-200 text-xs mt-0.5 capitalize">
+          <p className={`${g.sub} text-xs mt-0.5 capitalize`}>
             {new Date().toLocaleDateString('sr-RS', { weekday: 'long', day: 'numeric', month: 'long' })}
             {danasCheckin.length + danasCheckout.length + danasTask.length > 0
               ? ` · ${danasCheckin.length + danasCheckout.length + danasTask.length} stavki danas`
@@ -470,9 +557,10 @@ export default function Dashboard({ apartmani = [], onApartmaniChange, onNavigat
         </div>
         <div className="text-right">
           <p className="text-2xl font-black text-white tabular-nums">€{mesecniPrihod.toLocaleString()}</p>
-          <p className="text-teal-300 text-[11px]">ovaj mesec</p>
+          <p className={`${g.sub} text-[11px]`}>ovaj mesec</p>
         </div>
       </div>
+      )})()}
 
       {/* ── Stats strip (horizontal scroll on mobile) ── */}
       <div className="flex gap-2.5 overflow-x-auto pb-1 -mx-4 px-4 md:mx-0 md:px-0 md:grid md:grid-cols-6" style={{ scrollbarWidth: 'none' }}>
