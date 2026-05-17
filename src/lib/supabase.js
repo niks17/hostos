@@ -33,7 +33,25 @@ export function mapRezervacija(r) {
 }
 
 export function mapGost(g) {
-  return { ...g, brBoravaka: g.br_boravaka }
+  return {
+    ...g,
+    brBoravaka:    g.br_boravaka,
+    datumRodjenja: g.datum_rodjenja || null,
+    tipDokumenta:  g.tip_dokumenta  || 'Pasoš',
+    brojDokumenta: g.broj_dokumenta || null,
+    // prezime, pol, drzava su isti naziv u DB i JS — dolaze kroz ...g
+  }
+}
+
+// Vraća puno ime gosta (ime + prezime ako postoji)
+export function punoIme(g) {
+  if (!g) return '—'
+  return g.prezime ? `${g.ime} ${g.prezime}` : (g.ime || '—')
+}
+
+// Da li gost ima kompletne eTurista podatke
+export function eturistaKompletan(g) {
+  return !!(g && g.prezime && g.datum_rodjenja && g.pol && g.drzava && g.tip_dokumenta && g.broj_dokumenta)
 }
 
 export function mapTask(t) {

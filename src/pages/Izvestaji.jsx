@@ -2,11 +2,11 @@ import React, { useState } from 'react'
 import {
   FileText, TrendingUp, Home, Receipt,
   Download, Loader2, CheckCircle2, BarChart3,
-  Calendar, Building2, ChevronDown
+  Calendar, Building2, ChevronDown, ShieldCheck, Table2,
 } from 'lucide-react'
 import jsPDF from 'jspdf'
 import autoTable from 'jspdf-autotable'
-import { supabase } from '../lib/supabase'
+import { supabase, mapGost, punoIme, eturistaKompletan } from '../lib/supabase'
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
 function noći(a, b) { return Math.max(0, Math.round((new Date(b) - new Date(a)) / 86400000)) }
@@ -87,7 +87,7 @@ function pdfSummaryBox(doc, y, items) {
     }
     doc.setFontSize(isTotal ? 10 : 8.5)
     doc.setFont('helvetica', isTotal ? 'bold' : 'normal')
-    doc.setTextColor(isTotal ? ...TEAL : 100, isTotal ? undefined : 100, isTotal ? undefined : 110)
+    doc.setTextColor(...(isTotal ? TEAL : [100, 100, 110]))
     doc.text(s(label), 17, yy)
     doc.setFont('helvetica', 'bold')
     doc.setTextColor(isTotal ? 15 : 30, isTotal ? 80 : 30, isTotal ? 85 : 30)
@@ -431,6 +431,178 @@ function generateTax(rezs, trans, apartmani, mesec, godina, aptFilter) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
+// 5. eTURISTA EXPORT
+// ═══════════════════════════════════════════════════════════════════════════════
+
+// DD.MM.YYYY format koji eTurista portal koristi
+function eturistaDate(iso) {
+  if (!iso) return ''
+  const [y, m, d] = iso.split('-')
+  return `${d}.${m}.${y}`
+}
+
+// Spaja rezervaciju sa podacima gosta iz baze
+function gostZaRez(rez, sviGosti) {
+  if (rez.gost_id) return sviGosti.find(g => g.id === rez.gost_id) || null
+  return null
+}
+
+// Redovi za eTurista (po jedan gost po rezervaciji — povećati za br_gostiju ako treba)
+function eturistaRows(rezs, sviGosti, apartmani) {
+  const filtRez = rezs.filter(r => r.status !== 'otkazano')
+  return filtRez.map(r => {
+    const g   = gostZaRez(r, sviGosti)
+    const apt = apartmani.find(a => a.id === r.apartman_id)
+    return {
+      prezime:       g?.prezime || '',
+      ime:           g ? g.ime : (r.gost || ''),
+      datumRodjenja: g?.datum_rodjenja || '',
+      pol:           g?.pol || '',
+      drzavljanstvo: g?.drzava || '',
+      tipDokumenta:  g?.tip_dokumenta || '',
+      brojDokumenta: g?.broj_dokumenta || '',
+      dolazak:       r.dolazak || '',
+      odlazak:       r.odlazak || '',
+      aptNaziv:      apt?.naziv || '—',
+      kompletan:     !!(g && eturistaKompletan(g)),
+      gostIme:       g ? punoIme(g) : (r.gost || '—'),
+    }
+  })
+}
+
+function generateEturistaPdf(rezs, sviGosti, apartmani, mesec, godina, aptFilter) {
+  const doc     = new jsPDF()
+  const aptNaziv = aptFilter === 'all' ? 'Svi apartmani' : (apartmani.find(a => a.id == aptFilter)?.naziv || '—')
+  const rows    = eturistaRows(rezs, sviGosti, apartmani)
+  const SKY     = [14, 165, 233]  // sky-500 — government/portal feel
+
+  let y = pdfHeader(doc, 'eTurista export', `${mesecNaziv(mesec)} ${godina}  |  ${aptNaziv}`)
+
+  // Info box
+  doc.setFillColor(239, 246, 255)
+  doc.setDrawColor(147, 197, 253)
+  doc.roundedRect(12, y, 186, 18, 2, 2, 'FD')
+  doc.setFontSize(8)
+  doc.setFont('helvetica', 'bold')
+  doc.setTextColor(30, 64, 175)
+  doc.text('Za prijavu na eturista.gov.rs', 105, y + 7, { align: 'center' })
+  doc.setFont('helvetica', 'normal')
+  doc.setTextColor(55, 65, 81)
+  doc.text('Koristite ovaj dokument ili CSV export za unos podataka o gostima.', 105, y + 13, { align: 'center' })
+  doc.setTextColor(30, 30, 30)
+  y += 24
+
+  // Statistike kompletnosti
+  const ok    = rows.filter(r => r.kompletan).length
+  const nije  = rows.length - ok
+  y = pdfSection(doc, y, `Lista gostiju za prijavu — ${rows.length} gostiju`, SKY)
+
+  if (rows.length === 0) {
+    doc.setFontSize(8.5); doc.setTextColor(150, 150, 150)
+    doc.text('Nema rezervacija u ovom periodu.', 15, y); y += 12; doc.setTextColor(30, 30, 30)
+  } else {
+    autoTable(doc, {
+      startY: y, margin: { left: 12, right: 12 },
+      headStyles: { fillColor: SKY, textColor: 255, fontStyle: 'bold', fontSize: 7.5 },
+      bodyStyles: { fontSize: 7.5 },
+      alternateRowStyles: { fillColor: [239, 246, 255] },
+      columnStyles: {
+        0: { cellWidth: 28 },
+        1: { cellWidth: 28 },
+        2: { cellWidth: 22 },
+        3: { cellWidth: 10 },
+        4: { cellWidth: 22 },
+        5: { cellWidth: 20 },
+        6: { cellWidth: 22 },
+        7: { cellWidth: 18 },
+        8: { cellWidth: 18 },
+      },
+      head: [['Prezime', 'Ime', 'Dat. roj.', 'Pol', 'Drzavljanstvo', 'Tip dok.', 'Br. dokumenta', 'Dolazak', 'Odlazak']],
+      body: rows.map(r => [
+        s(r.prezime) || '?',
+        s(r.ime)     || '?',
+        eturistaDate(r.datumRodjenja) || '?',
+        r.pol || '?',
+        s(r.drzavljanstvo) || '?',
+        s(r.tipDokumenta)  || '?',
+        s(r.brojDokumenta) || '?',
+        eturistaDate(r.dolazak),
+        eturistaDate(r.odlazak),
+      ]),
+      didParseCell: (data) => {
+        if (data.section === 'body') {
+          const row = rows[data.row.index]
+          if (!row?.kompletan) {
+            data.cell.styles.fillColor = [255, 251, 235]  // amber-50 za nekompletne
+          }
+        }
+      },
+    })
+    y = doc.lastAutoTable.finalY + 10
+  }
+
+  // Legenda i upozorenja
+  if (nije > 0) {
+    if (y > 240) { doc.addPage(); y = 20 }
+    doc.setFillColor(255, 243, 192)
+    doc.setDrawColor(251, 191, 36)
+    doc.roundedRect(12, y, 186, 22, 2, 2, 'FD')
+    doc.setFontSize(8)
+    doc.setFont('helvetica', 'bold')
+    doc.setTextColor(120, 80, 0)
+    doc.text(`Upozorenje: ${nije} ${nije === 1 ? 'gost nema' : 'gostiju nema'} kompletne eTurista podatke (oznaceni zutom bojom).`, 105, y + 8, { align: 'center' })
+    doc.setFont('helvetica', 'normal')
+    doc.text('Idite na Gosti > izmeni gosta i dodajte: prezime, datum rodjenja, pol, tip i broj dokumenta.', 105, y + 15, { align: 'center' })
+    doc.setTextColor(30, 30, 30)
+    y += 28
+  }
+
+  // Rezime
+  if (y > 240) { doc.addPage(); y = 20 }
+  y = pdfSection(doc, y, 'Rezime')
+  pdfSummaryBox(doc, y, [
+    ['Ukupno gostiju za prijavu', rows.length],
+    ['Sa kompletnim podacima', `${ok} (${rows.length > 0 ? Math.round(ok/rows.length*100) : 0}%)`],
+    ['Bez kompletnih podataka', nije > 0 ? `${nije} — dopuniti u modulu Gosti` : '0 ✓'],
+    ['Izvor', `eturista.gov.rs`, true],
+  ])
+
+  pdfFooter(doc)
+  doc.save(`hostos-eturista-${godina}-${String(mesec).padStart(2,'0')}.pdf`)
+}
+
+function downloadEturistaCsv(rezs, sviGosti, apartmani, mesec, godina, aptFilter) {
+  const rows = eturistaRows(rezs, sviGosti, apartmani)
+
+  // BOM za ispravno prikazivanje srpskih slova u Excelu
+  const BOM  = '﻿'
+  const SEP  = ';'
+
+  const header = ['Prezime', 'Ime', 'Datum rodjenja', 'Pol', 'Drzavljanstvo', 'Vrsta dokumenta', 'Broj dokumenta', 'Datum dolaska', 'Datum odlaska'].join(SEP)
+
+  const body = rows.map(r => [
+    r.prezime         || '',
+    r.ime             || '',
+    eturistaDate(r.datumRodjenja) || '',
+    r.pol             || '',
+    r.drzavljanstvo   || '',
+    r.tipDokumenta    || '',
+    r.brojDokumenta   || '',
+    eturistaDate(r.dolazak),
+    eturistaDate(r.odlazak),
+  ].join(SEP))
+
+  const csv  = BOM + [header, ...body].join('\n')
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
+  const url  = URL.createObjectURL(blob)
+  const a    = document.createElement('a')
+  a.href     = url
+  a.download = `hostos-eturista-${godina}-${String(mesec).padStart(2,'0')}.csv`
+  a.click()
+  URL.revokeObjectURL(url)
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
 // REACT COMPONENT
 // ═══════════════════════════════════════════════════════════════════════════════
 const REPORTS = [
@@ -486,6 +658,9 @@ export default function Izvestaji({ apartmani = [] }) {
   const [aptFilter, setAptFilter] = useState('all')
   const [loading,   setLoading]   = useState({})
   const [done,      setDone]      = useState({})
+  // eTurista ima dva zasebna dugmeta (PDF + CSV)
+  const [etLoad,    setEtLoad]    = useState({})  // { pdf: bool, csv: bool }
+  const [etDone,    setEtDone]    = useState({})  // { pdf: bool, csv: bool }
 
   async function fetchData() {
     const pad   = n => String(n).padStart(2, '0')
@@ -503,8 +678,14 @@ export default function Izvestaji({ apartmani = [] }) {
       .lte('datum', end)
     if (aptFilter !== 'all') trQ = trQ.eq('apartman_id', aptFilter)
 
-    const [{ data: rezData }, { data: trData }] = await Promise.all([rezQ, trQ])
-    return { rezs: rezData || [], trans: trData || [] }
+    const [{ data: rezData }, { data: trData }, { data: gostiData }] = await Promise.all([
+      rezQ, trQ, supabase.from('gosti').select('*'),
+    ])
+    return {
+      rezs:   rezData   || [],
+      trans:  trData    || [],
+      gosti: (gostiData || []).map(mapGost),
+    }
   }
 
   async function generate(report) {
@@ -519,6 +700,25 @@ export default function Izvestaji({ apartmani = [] }) {
       console.error('PDF error:', e)
     } finally {
       setLoading(l => ({ ...l, [report.id]: false }))
+    }
+  }
+
+  async function generateEturista(tip) {
+    setEtLoad(l => ({ ...l, [tip]: true }))
+    setEtDone(d => ({ ...d, [tip]: false }))
+    try {
+      const { rezs, gosti } = await fetchData()
+      if (tip === 'pdf') {
+        generateEturistaPdf(rezs, gosti, apartmani, mesec, godina, aptFilter)
+      } else {
+        downloadEturistaCsv(rezs, gosti, apartmani, mesec, godina, aptFilter)
+      }
+      setEtDone(d => ({ ...d, [tip]: true }))
+      setTimeout(() => setEtDone(d => ({ ...d, [tip]: false })), 3000)
+    } catch (e) {
+      console.error('eTurista error:', e)
+    } finally {
+      setEtLoad(l => ({ ...l, [tip]: false }))
     }
   }
 
@@ -648,8 +848,89 @@ export default function Izvestaji({ apartmani = [] }) {
         })}
       </div>
 
+      {/* ── eTurista Export — posebna kartica (PDF + CSV) ── */}
+      <div className="mt-4 bg-white dark:bg-slate-800 rounded-2xl border-2 border-sky-100 dark:border-sky-900/50 shadow-sm overflow-hidden">
+        {/* Accent bar */}
+        <div className="h-1.5 bg-sky-500" />
+
+        <div className="p-5">
+          {/* Header */}
+          <div className="flex items-start gap-3 mb-4">
+            <div className="w-11 h-11 rounded-2xl flex items-center justify-center flex-shrink-0 bg-sky-50 dark:bg-sky-900/30">
+              <ShieldCheck size={20} className="text-sky-500" />
+            </div>
+            <div className="flex-1">
+              <div className="flex items-center gap-2 flex-wrap">
+                <h3 className="font-black text-slate-800 dark:text-white text-base leading-tight">eTurista export</h3>
+                <span className="text-xs px-2 py-0.5 rounded-full font-bold bg-sky-100 dark:bg-sky-900/50 text-sky-700 dark:text-sky-300">
+                  Zakonska obaveza
+                </span>
+              </div>
+              <p className="text-xs text-slate-400 mt-0.5">Prijava gostiju na eturista.gov.rs — PDF pregled + CSV za direktan uvoz</p>
+            </div>
+          </div>
+
+          {/* Šta sadrži */}
+          <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 mb-5">
+            {[
+              'Prezime, ime, datum rođenja',
+              'Pol i državljanstvo',
+              'Tip i broj dokumenta',
+              'Datumi dolaska/odlaska',
+              'Upozorenja za nekompletne goste',
+              'CSV za bulk uvoz na portalu',
+            ].map((item, i) => (
+              <div key={i} className="flex items-center gap-2">
+                <div className="w-1.5 h-1.5 rounded-full flex-shrink-0 bg-sky-400" />
+                <span className="text-xs text-slate-500 dark:text-slate-400">{item}</span>
+              </div>
+            ))}
+          </div>
+
+          {/* Dva dugmeta */}
+          <div className="grid grid-cols-2 gap-3">
+            {/* PDF */}
+            <button
+              onClick={() => generateEturista('pdf')}
+              disabled={etLoad.pdf}
+              className="py-3 rounded-xl text-sm font-bold flex items-center justify-center gap-2 transition-all active:scale-95 disabled:opacity-60"
+              style={{ backgroundColor: etDone.pdf ? '#10b981' : '#0ea5e9', color: 'white' }}
+            >
+              {etLoad.pdf ? (
+                <><Loader2 size={15} className="animate-spin" /> Generišem...</>
+              ) : etDone.pdf ? (
+                <><CheckCircle2 size={15} /> PDF preuzet!</>
+              ) : (
+                <><Download size={15} /> Generiši PDF</>
+              )}
+            </button>
+
+            {/* CSV */}
+            <button
+              onClick={() => generateEturista('csv')}
+              disabled={etLoad.csv}
+              className="py-3 rounded-xl text-sm font-bold flex items-center justify-center gap-2 transition-all active:scale-95 disabled:opacity-60 border-2 border-sky-200 dark:border-sky-800"
+              style={{ color: etDone.csv ? '#10b981' : '#0ea5e9', backgroundColor: 'transparent' }}
+            >
+              {etLoad.csv ? (
+                <><Loader2 size={15} className="animate-spin" /> Generišem...</>
+              ) : etDone.csv ? (
+                <><CheckCircle2 size={15} /> CSV preuzet!</>
+              ) : (
+                <><Table2 size={15} /> Preuzmi CSV</>
+              )}
+            </button>
+          </div>
+
+          {/* Napomena o kompletnosti */}
+          <p className="text-xs text-slate-400 dark:text-slate-500 text-center mt-3">
+            Podaci gostiju se unose u <strong className="text-slate-500">Gosti</strong> modulu — tamo vidite ko ima kompletne eTurista podatke
+          </p>
+        </div>
+      </div>
+
       {/* ── Tip ── */}
-      <div className="mt-6 p-4 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-slate-100 dark:border-slate-700">
+      <div className="mt-4 p-4 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-slate-100 dark:border-slate-700">
         <p className="text-xs text-slate-400 leading-relaxed">
           💡 <strong className="text-slate-600 dark:text-slate-300">Savet:</strong> PDF fajlovi se odmah preuzimaju na vaš uređaj.
           Možete ih otvoriti u bilo kojoj PDF aplikaciji, poslati emailom ili odštampati.
