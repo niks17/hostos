@@ -1,12 +1,13 @@
 import React from 'react'
 import {
   LayoutDashboard, Calendar, BookOpen, Users, Sparkles, Wallet,
-  Building2, LogOut, Sun, Moon, FileText,
+  Building2, LogOut, Sun, Moon, FileText, AlertTriangle,
 } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 
 const SVE_STAVKE = [
   { id: 'dashboard',   naziv: 'Pregled',       ikona: LayoutDashboard, role: ['vlasnik'] },
+  { id: 'problemi',    naziv: 'Problemi',       ikona: AlertTriangle,   role: ['vlasnik'], badge: true },
   { id: 'kalendar',    naziv: 'Kalendar',      ikona: Calendar,        role: ['vlasnik', 'kooperant'] },
   { id: 'rezervacije', naziv: 'Rezervacije',   ikona: BookOpen,        role: ['vlasnik', 'kooperant'] },
   { id: 'gosti',       naziv: 'Gosti',         ikona: Users,           role: ['vlasnik', 'kooperant'] },
@@ -20,7 +21,7 @@ function initials(ime) {
   return ime.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()
 }
 
-export default function Sidebar({ aktivnaStrana, setAktivnaStrana, tamniRezim, setTamniRezim }) {
+export default function Sidebar({ aktivnaStrana, setAktivnaStrana, tamniRezim, setTamniRezim, problemCount = 0 }) {
   const { user, profile, signOut } = useAuth()
   const role      = profile?.role || 'vlasnik'
   const navigacija = SVE_STAVKE.filter(s => s.role.includes(role))
@@ -67,7 +68,12 @@ export default function Sidebar({ aktivnaStrana, setAktivnaStrana, tamniRezim, s
             >
               <Ikona size={17} strokeWidth={aktivan ? 2.2 : 1.8} />
               <span className="flex-1 text-left">{stavka.naziv}</span>
-              {aktivan && (
+              {stavka.badge && problemCount > 0 && (
+                <span className="flex items-center justify-center w-5 h-5 rounded-full text-[10px] font-black text-white bg-red-500">
+                  {problemCount > 9 ? '9+' : problemCount}
+                </span>
+              )}
+              {aktivan && !stavka.badge && (
                 <div className="w-1.5 h-1.5 rounded-full bg-white/60" />
               )}
             </button>

@@ -12,6 +12,7 @@ import CistacijeHub from './pages/CistacijeHub'
 import Finansije from './pages/Finansije'
 import Izvestaji from './pages/Izvestaji'
 import GuestPortal from './pages/GuestPortal'
+import ProblemiCentar, { fetchProblemCount } from './pages/ProblemiCentar'
 import { useIcalSync } from './hooks/useIcalSync'
 import { supabase, mapApartman } from './lib/supabase'
 
@@ -28,7 +29,8 @@ function AppInner() {
     try { return localStorage.getItem('hostos_dark_mode') === 'true' }
     catch { return false }
   })
-  const [apartmani, setApartmani] = useState([])
+  const [apartmani,    setApartmani]    = useState([])
+  const [problemCount, setProblemCount] = useState(0)
   const icalSync = useIcalSync()
 
   useEffect(() => {
@@ -46,7 +48,12 @@ function AppInner() {
 
   async function loadApartmani() {
     const { data } = await supabase.from('apartmani').select('*').order('created_at')
-    if (data) setApartmani(data.map(mapApartman))
+    if (data) {
+      const mapped = data.map(mapApartman)
+      setApartmani(mapped)
+      // Badge count — osvezi svaki put kad se apartmani ucitaju
+      fetchProblemCount(user, mapped).then(setProblemCount)
+    }
   }
 
   if (loading) return (
@@ -65,6 +72,7 @@ function AppInner() {
     cistacije:   <CistacijeHub apartmani={apartmani} />,
     finansije:   <Finansije apartmani={apartmani} />,
     izvestaji:   <Izvestaji apartmani={apartmani} />,
+    problemi:    <ProblemiCentar apartmani={apartmani} onNavigate={setAktivnaStrana} />,
   }
 
   return (
@@ -74,6 +82,7 @@ function AppInner() {
         setAktivnaStrana={setAktivnaStrana}
         tamniRezim={tamniRezim}
         setTamniRezim={setTamniRezim}
+        problemCount={problemCount}
       />
       <div className="flex-1 flex flex-col overflow-hidden">
         <Header
@@ -91,7 +100,7 @@ function AppInner() {
           </div>
         </main>
       </div>
-      <BottomNav aktivnaStrana={aktivnaStrana} setAktivnaStrana={setAktivnaStrana} />
+      <BottomNav aktivnaStrana={aktivnaStrana} setAktivnaStrana={setAktivnaStrana} problemCount={problemCount} />
     </div>
   )
 }

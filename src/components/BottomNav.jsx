@@ -1,17 +1,16 @@
 import React from 'react'
-import { LayoutDashboard, Calendar, BookOpen, Users, Sparkles, Wallet, FileText } from 'lucide-react'
+import { LayoutDashboard, Calendar, BookOpen, Sparkles, Wallet, AlertTriangle } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 
 const SVE_STAVKE = [
   { id: 'dashboard',   naziv: 'Pregled',     ikona: LayoutDashboard, role: ['vlasnik'] },
-  { id: 'kalendar',    naziv: 'Kalendar',    ikona: Calendar,        role: ['vlasnik', 'kooperant'] },
   { id: 'rezervacije', naziv: 'Rezervacije', ikona: BookOpen,        role: ['vlasnik', 'kooperant'] },
+  { id: 'problemi',    naziv: 'Problemi',    ikona: AlertTriangle,   role: ['vlasnik'], badge: true },
   { id: 'cistacije',   naziv: 'Čistačice',   ikona: Sparkles,        role: ['vlasnik', 'cistacica'] },
   { id: 'finansije',   naziv: 'Finansije',   ikona: Wallet,          role: ['vlasnik'] },
-  { id: 'izvestaji',   naziv: 'Izveštaji',   ikona: FileText,        role: ['vlasnik'] },
 ]
 
-export default function BottomNav({ aktivnaStrana, setAktivnaStrana }) {
+export default function BottomNav({ aktivnaStrana, setAktivnaStrana, problemCount = 0 }) {
   const { profile } = useAuth()
   const role   = profile?.role || 'vlasnik'
   const stavke = SVE_STAVKE.filter(s => s.role.includes(role))
@@ -44,7 +43,7 @@ export default function BottomNav({ aktivnaStrana, setAktivnaStrana }) {
 
               {/* Icon container */}
               <div className={`
-                w-10 h-7 rounded-xl flex items-center justify-center
+                relative w-10 h-7 rounded-xl flex items-center justify-center
                 transition-all duration-200
                 ${aktivan
                   ? 'bg-teal-600/10 dark:bg-teal-600/20'
@@ -54,9 +53,15 @@ export default function BottomNav({ aktivnaStrana, setAktivnaStrana }) {
                 <Ikona
                   size={20}
                   strokeWidth={aktivan ? 2.2 : 1.8}
-                  style={{ color: aktivan ? '#01696f' : undefined }}
-                  className={aktivan ? '' : 'text-slate-400 dark:text-slate-500'}
+                  style={{ color: aktivan ? '#01696f' : s.badge && problemCount > 0 ? '#ef4444' : undefined }}
+                  className={aktivan || (s.badge && problemCount > 0) ? '' : 'text-slate-400 dark:text-slate-500'}
                 />
+                {/* Red badge */}
+                {s.badge && problemCount > 0 && (
+                  <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full text-[9px] font-black text-white bg-red-500 flex items-center justify-center">
+                    {problemCount > 9 ? '9+' : problemCount}
+                  </span>
+                )}
               </div>
 
               {/* Label */}
