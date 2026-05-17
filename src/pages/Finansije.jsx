@@ -394,23 +394,27 @@ export default function Finansije({ apartmani = [] }) {
           {/* Stat kartice */}
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
             {[
-              { naziv: 'Ukupan prihod',   iznos: prihod,   ikona: TrendingUp,  boja: '#01696f' },
-              { naziv: 'Troškovi',         iznos: troskovi, ikona: TrendingDown, boja: '#ef4444' },
-              { naziv: 'Neto zarada',      iznos: neto,     ikona: Euro,         boja: '#8b5cf6' },
+              { naziv: 'Ukupan prihod',   iznos: prihod,   ikona: TrendingUp,  boja: '#01696f', valuta: '€' },
+              { naziv: 'Troškovi',         iznos: troskovi, ikona: TrendingDown, boja: '#ef4444', valuta: '€' },
+              { naziv: 'Neto zarada',      iznos: neto,     ikona: Euro,         boja: '#8b5cf6', valuta: '€' },
               {
                 naziv: 'Boravišna taksa',
                 iznos: tranz.filter(t => t.kategorija === 'Boravišna taksa').reduce((s, t) => s + Math.abs(t.iznos), 0),
                 ikona: Receipt,
                 boja: '#f59e0b',
+                valuta: 'RSD',
               },
             ].map(k => {
               const Ik = k.ikona
+              const formatIznos = k.valuta === 'RSD'
+                ? `${k.iznos.toLocaleString()} RSD`
+                : `€${k.iznos.toLocaleString()}`
               return (
                 <div key={k.naziv} className="bg-white dark:bg-slate-800 rounded-2xl p-4 shadow-sm border border-slate-100 dark:border-slate-700 transition-colors">
                   <div className="w-9 h-9 rounded-xl flex items-center justify-center mb-3" style={{ backgroundColor: k.boja + '20' }}>
                     <Ik size={18} style={{ color: k.boja }} />
                   </div>
-                  <p className="text-xl font-bold text-slate-800 dark:text-white">€{k.iznos.toLocaleString()}</p>
+                  <p className="text-xl font-bold text-slate-800 dark:text-white">{formatIznos}</p>
                   <p className="text-xs text-slate-400 dark:text-slate-500 mt-0.5">{k.naziv}</p>
                 </div>
               )
@@ -476,7 +480,10 @@ export default function Finansije({ apartmani = [] }) {
                     </div>
                     <div className="flex items-center gap-3">
                       <span className={`font-semibold text-sm ${pozitivno ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-500'}`}>
-                        {pozitivno ? '+' : ''}€{Math.abs(t.iznos)}
+                        {t.kategorija === 'Boravišna taksa'
+                          ? `${pozitivno ? '+' : ''}${Math.abs(t.iznos).toLocaleString()} RSD`
+                          : `${pozitivno ? '+' : ''}€${Math.abs(t.iznos)}`
+                        }
                       </span>
                       <button
                         onClick={() => obrisi(t.id)}
@@ -554,8 +561,10 @@ export default function Finansije({ apartmani = [] }) {
                       className="w-full px-3 py-2 text-sm border border-slate-200 dark:border-slate-600 rounded-lg outline-none focus:border-teal-500 bg-transparent dark:text-white" />
                   </div>
                   <div>
-                    <label className="text-xs font-medium text-slate-500 dark:text-slate-400 mb-1 block">Iznos (€)</label>
-                    <input type="number" value={forma.iznos} onChange={e => setForma({...forma, iznos: e.target.value})}
+                    <label className="text-xs font-medium text-slate-500 dark:text-slate-400 mb-1 block">
+                      Iznos {forma.kategorija === 'Boravišna taksa' ? '(RSD)' : '(€)'}
+                    </label>
+                    <input type="number" inputMode="numeric" value={forma.iznos} onChange={e => setForma({...forma, iznos: e.target.value})}
                       placeholder="0"
                       className="w-full px-3 py-2 text-sm border border-slate-200 dark:border-slate-600 rounded-lg outline-none focus:border-teal-500 bg-transparent dark:text-white" />
                   </div>
