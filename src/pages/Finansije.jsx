@@ -6,6 +6,7 @@ import {
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Legend } from 'recharts'
 import { supabase, mapTransakcija, mapRezervacija } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
+import { haptic } from '../utils/haptics'
 import { generateReport } from '../utils/generateReport'
 
 const KATEGORIJE = ['Čišćenje', 'Komunalije', 'Popravka', 'Provizija', 'Boravišna taksa', 'Ostalo']
@@ -93,6 +94,8 @@ function BtTab({ rezervacije, apartmani, userId }) {
   async function togglePlaceno(mesecKljuc) {
     const trenutnoPlaceno = placeni[mesecKljuc]?.placeno || false
     const novoDatum        = !trenutnoPlaceno ? new Date().toISOString() : null
+
+    haptic.tap()
 
     // Optimisticki update — UI odmah reaguje
     setPlaceni(prev => ({

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { Plus, X, Search, Home, Link, Pencil, Trash2, Phone, MessageCircle, PhoneCall, Zap, ToggleLeft, ToggleRight } from 'lucide-react'
 import { supabase, mapRezervacija, logActivity } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
+import { haptic } from '../utils/haptics'
 import InboxModal from '../components/InboxModal'
 import WorkflowToast from '../components/WorkflowToast'
 import { runWorkflows, loadWorkflowSettings, saveWorkflowSettings, WORKFLOW_DEFS } from '../lib/workflows'
@@ -218,7 +219,10 @@ export default function Rezervacije({ syncedRez = [], apartmani = [] }) {
         userId: user.id,
         settings: workflowSettings,
       })
-      if (results.length > 0) setWorkflowResults(results)
+      if (results.length > 0) {
+        haptic.success()
+        setWorkflowResults(results)
+      }
     }
   }
 

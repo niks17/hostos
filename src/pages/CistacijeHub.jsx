@@ -6,6 +6,7 @@ import {
 } from 'lucide-react'
 import { supabase, logActivity } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
+import { haptic } from '../utils/haptics'
 
 const STAVKE_DEFAULT = [
   'Posteljina i peškiri',
@@ -49,6 +50,7 @@ function ChecklistItem({ stavka, onToggle }) {
   function handleTap() {
     setBouncing(true)
     setTimeout(() => setBouncing(false), 300)
+    haptic.tap()
     onToggle()
   }
 
@@ -222,6 +224,7 @@ function CleanerView({ taskovi, apartmani, toggleStavka, rezervacije }) {
   const sveZavrseno   = task.stavke.length === 0 || zavrsenoCount === task.stavke.length
 
   async function handleZavrseno() {
+    haptic.done()
     setSaving(true)
     await supabase.from('cistacke_tasks')
       .update({ napomena: napomena.trim() || null, status: 'zavrseno' })
