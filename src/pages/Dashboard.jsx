@@ -402,7 +402,14 @@ export default function Dashboard({ apartmani = [], onApartmaniChange, onNavigat
   }
 
   // ── Data ──────────────────────────────────────────────────────────────────
-  const sveRez         = [...rezervacije, ...syncedRez.filter(s => !rezervacije.some(r => r.id === s.id))]
+  // Dedup: localStorage items that were already UPSERT-ed to Supabase are
+  // matched by ical_uid — prevents showing the same reservation twice.
+  const sveRez = [
+    ...rezervacije,
+    ...syncedRez.filter(s =>
+      !rezervacije.some(r => r.id === s.id || (s.icalUid && r.icalUid === s.icalUid))
+    ),
+  ]
   const danasCheckin   = sveRez.filter(r => r.dolazak === danas && r.status === 'potvrdjeno')
   const danasCheckout  = sveRez.filter(r => r.odlazak === danas && r.status === 'potvrdjeno')
   const danasTask      = tasks.filter(t => t.datum === danas)

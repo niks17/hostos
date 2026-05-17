@@ -7,9 +7,19 @@
  *
  * Storage:
  *   - iCal URLs: localStorage (hostos_ical_urls_v1)
- *   - Synced reservations: localStorage (hostos_ical_rez_v1)
+ *   - Synced reservations: localStorage (hostos_ical_rez_v1) + Supabase UPSERT
+ *
+ * Idempotency:
+ *   Each iCal event is mapped to a unique `ical_uid` key (apartmanId_platform_eventUID).
+ *   Supabase UPSERT on `ical_uid` ensures re-syncing every hour never creates duplicates.
+ *   The SQL migration required (run once in Supabase SQL Editor):
+ *
+ *   ALTER TABLE rezervacije ADD COLUMN IF NOT EXISTS ical_uid text;
+ *   CREATE UNIQUE INDEX IF NOT EXISTS rezervacije_ical_uid_idx
+ *     ON rezervacije(ical_uid) WHERE ical_uid IS NOT NULL;
  */
 import { useState, useEffect, useCallback, useRef } from 'react'
+import { supabase } from '../lib/supabase'
 
 const URL_KEY  = 'hostos_ical_urls_v1'
 const REZ_KEY  = 'hostos_ical_rez_v1'
@@ -30,12 +40,15 @@ function detectIzvor(url) {
   return 'iCal'
 }
 
+// Returns a frontend-facing reservation object (for localStorage / UI display).
+// `icalUid` is included so pages can deduplicate against Supabase rows.
 function eventToRez(ev, apartmanId, izvor, uid) {
   const gost =
     izvor === 'Booking.com' ? 'Booking.com gost' :
     izvor === 'Airbnb'      ? 'Airbnb gost' : 'iCal gost'
   return {
-    id:         `ical_${uid}`,
+    id:         `ical_${uid}`,  // local display ID (string)
+    icalUid:    uid,            // used for dedup against Supabase ical_uid column
     apartmanId,
     gostId:     null,
     gost,
@@ -48,6 +61,24 @@ function eventToRez(ev, apartmanId, izvor, uid) {
     napomena:   ev.description ? ev.description.slice(0, 120) : '',
     icalImport: true,
     br_gostiju: 1,
+  }
+}
+
+// Maps a frontend reservation object to a Supabase DB row shape for UPSERT.
+function rezToDbRow(r) {
+  return {
+    apartman_id: r.apartmanId,
+    gost:        r.gost,
+    kontakt:     r.kontakt,
+    dolazak:     r.dolazak,
+    odlazak:     r.odlazak,
+    cena:        r.cena,
+    status:      r.status,
+    izvor:       r.izvor,
+    br_gostiju:  r.br_gostiju,
+    napomena:    r.napomena,
+    ical_import: true,
+    ical_uid:    r.icalUid,   // conflict key — Supabase UPSERT deduplicates on this
   }
 }
 
@@ -78,7 +109,7 @@ export function useIcalSync() {
     delete next[`${apartmanId}_${platform}`]
     setIcalUrls(next)
     saveJson(URL_KEY, next)
-    // Also clear synced rez for this source
+    // Clear synced rez for this source from localStorage
     const key = `ical_${apartmanId}_${platform}`
     const filtered = syncedRez.filter(r => !r.id.startsWith(`ical_${key}`))
     setSyncedRez(filtered)
@@ -95,7 +126,7 @@ export function useIcalSync() {
     setSyncing(true)
     setErrors([])
 
-    const allRez   = []
+    const allRez    = []
     const newErrors = []
 
     await Promise.allSettled(
@@ -133,6 +164,28 @@ export function useIcalSync() {
       })
     )
 
+    // ── Persist to Supabase (idempotent UPSERT on ical_uid) ─────────────────
+    // This ensures iCal reservations survive browser cache clears,
+    // device switches, and are visible on all devices without re-syncing.
+    if (allRez.length > 0) {
+      try {
+        const dbRows = allRez.map(rezToDbRow)
+        const { error: upsertErr } = await supabase
+          .from('rezervacije')
+          .upsert(dbRows, { onConflict: 'ical_uid', ignoreDuplicates: false })
+
+        if (upsertErr) {
+          // DB UPSERT failed — log silently, localStorage still has data
+          console.warn('[iCal] Supabase UPSERT failed:', upsertErr.message)
+        }
+      } catch (e) {
+        console.warn('[iCal] Supabase UPSERT error:', e)
+      }
+    }
+
+    // ── Update localStorage cache ────────────────────────────────────────────
+    // localStorage is the fast path: immediate display without a DB round-trip.
+    // Supabase is the persistent path: survives cache clears + multi-device.
     setSyncedRez(allRez)
     saveJson(REZ_KEY, allRez)
     setLastSync(new Date().toISOString())

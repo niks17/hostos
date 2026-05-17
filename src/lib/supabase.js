@@ -22,7 +22,14 @@ export function mapApartman(a) {
 }
 
 export function mapRezervacija(r) {
-  return { ...r, apartmanId: r.apartman_id, gostId: r.gost_id, brGostiju: r.br_gostiju, icalImport: r.ical_import }
+  return {
+    ...r,
+    apartmanId: r.apartman_id,
+    gostId:     r.gost_id,
+    brGostiju:  r.br_gostiju,
+    icalImport: r.ical_import,
+    icalUid:    r.ical_uid || null,
+  }
 }
 
 export function mapGost(g) {

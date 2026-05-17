@@ -110,7 +110,14 @@ export default function Rezervacije({ syncedRez = [], apartmani = [] }) {
     setLoading(false)
   }
 
-  const sveRez = [...rez, ...syncedRez.filter(s => !rez.some(r => r.id === s.id))]
+  // Dedup: localStorage items that were already UPSERT-ed to Supabase are
+  // matched by ical_uid — prevents showing the same reservation twice.
+  const sveRez = [
+    ...rez,
+    ...syncedRez.filter(s =>
+      !rez.some(r => r.id === s.id || (s.icalUid && r.icalUid === s.icalUid))
+    ),
+  ]
   const filtrirane = sveRez.filter(r => {
     const matchFilter = filter === 'sve' || r.status === filter
     const matchSearch = r.gost.toLowerCase().includes(pretraga.toLowerCase()) ||

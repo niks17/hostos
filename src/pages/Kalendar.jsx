@@ -83,7 +83,14 @@ export default function Kalendar({ syncedRez = [], apartmani = [] }) {
     setRez((data || []).map(mapRezervacija))
   }
 
-  const sveRez = [...rez, ...syncedRez.filter(s => !rez.some(r => r.id === s.id))]
+  // Dedup: localStorage items that were already UPSERT-ed to Supabase are
+  // matched by ical_uid — prevents showing the same reservation twice.
+  const sveRez = [
+    ...rez,
+    ...syncedRez.filter(s =>
+      !rez.some(r => r.id === s.id || (s.icalUid && r.icalUid === s.icalUid))
+    ),
+  ]
 
   const weeks = buildWeeks(godina, mesec)
 
