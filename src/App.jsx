@@ -24,12 +24,16 @@ function defaultPage(role) {
 function AppInner() {
   const { user, profile, loading } = useAuth()
   const [aktivnaStrana, setAktivnaStrana] = useState('dashboard')
-  const [tamniRezim, setTamniRezim] = useState(false)
+  const [tamniRezim, setTamniRezim] = useState(() => {
+    try { return localStorage.getItem('hostos_dark_mode') === 'true' }
+    catch { return false }
+  })
   const [apartmani, setApartmani] = useState([])
   const icalSync = useIcalSync()
 
   useEffect(() => {
     document.documentElement.classList.toggle('dark', tamniRezim)
+    try { localStorage.setItem('hostos_dark_mode', tamniRezim) } catch {}
   }, [tamniRezim])
 
   useEffect(() => {

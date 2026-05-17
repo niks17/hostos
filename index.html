@@ -10,6 +10,16 @@
     <meta name="apple-mobile-web-app-title" content="HostOS" />
     <title>HostOS</title>
 
+    <!-- Dark mode: inline sync script — mora biti pre CSS-a da nema bleska belog ekrana -->
+    <script>
+      try {
+        if (localStorage.getItem('hostos_dark_mode') === 'true') {
+          document.documentElement.classList.add('dark');
+          document.documentElement.style.background = '#0f172a';
+        }
+      } catch(e) {}
+    </script>
+
     <!-- Fonts: non-blocking -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
