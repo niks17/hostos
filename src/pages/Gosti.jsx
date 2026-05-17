@@ -369,16 +369,16 @@ export default function Gosti() {
                 {izabrani.email && (
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2 text-sm text-slate-500 dark:text-slate-400"><Mail size={14} /> {izabrani.email}</div>
-                    <a href={`mailto:${izabrani.email}`} className="p-1.5 rounded-lg bg-slate-100 dark:bg-slate-700 hover:bg-blue-100 dark:hover:bg-blue-900/30 text-slate-500 hover:text-blue-600 transition-colors"><Mail size={14} /></a>
+                    <a href={`mailto:${izabrani.email}`} className="w-12 h-12 rounded-xl bg-slate-100 dark:bg-slate-700 hover:bg-blue-100 dark:hover:bg-blue-900/30 text-slate-500 hover:text-blue-600 transition-colors flex items-center justify-center flex-shrink-0"><Mail size={16} /></a>
                   </div>
                 )}
                 {izabrani.telefon && (
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2 text-sm text-slate-500 dark:text-slate-400"><Phone size={14} /> {izabrani.telefon}</div>
-                    <div className="flex gap-1.5">
-                      <a href={`tel:${izabrani.telefon}`} className="p-1.5 rounded-lg bg-slate-100 dark:bg-slate-700 hover:bg-blue-100 dark:hover:bg-blue-900/30 text-slate-500 hover:text-blue-600 transition-colors"><Phone size={14} /></a>
-                      <a href={waUrl(izabrani.telefon)} target="_blank" rel="noreferrer" className="p-1.5 rounded-lg bg-slate-100 dark:bg-slate-700 hover:bg-green-100 dark:hover:bg-green-900/30 text-slate-500 hover:text-green-600 transition-colors"><MessageCircle size={14} /></a>
-                      <a href={viberUrl(izabrani.telefon)} className="p-1.5 rounded-lg bg-slate-100 dark:bg-slate-700 hover:bg-purple-100 dark:hover:bg-purple-900/30 text-slate-500 hover:text-purple-600 transition-colors"><PhoneCall size={14} /></a>
+                    <div className="flex gap-2">
+                      <a href={`tel:${izabrani.telefon}`} className="w-12 h-12 rounded-xl bg-slate-100 dark:bg-slate-700 hover:bg-blue-100 dark:hover:bg-blue-900/30 text-slate-500 hover:text-blue-600 transition-colors flex items-center justify-center flex-shrink-0"><Phone size={16} /></a>
+                      <a href={waUrl(izabrani.telefon)} target="_blank" rel="noreferrer" className="w-12 h-12 rounded-xl bg-green-500 hover:bg-green-600 text-white transition-colors flex items-center justify-center flex-shrink-0"><MessageCircle size={16} /></a>
+                      <a href={viberUrl(izabrani.telefon)} className="w-12 h-12 rounded-xl bg-purple-500 hover:bg-purple-600 text-white transition-colors flex items-center justify-center flex-shrink-0"><PhoneCall size={16} /></a>
                     </div>
                   </div>
                 )}

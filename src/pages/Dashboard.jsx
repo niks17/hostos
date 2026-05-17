@@ -188,21 +188,21 @@ function ArrivalCard({ r, apt }) {
               <a
                 href={waMsg(r.kontakt, checkinTemplate(r, apt))}
                 target="_blank" rel="noreferrer"
-                className="flex-1 py-2.5 bg-green-500 hover:bg-green-600 active:bg-green-700 text-white text-xs font-bold rounded-xl flex items-center justify-center gap-1.5 transition-colors"
+                className="flex-1 min-h-[48px] bg-green-500 hover:bg-green-600 active:bg-green-700 text-white text-xs font-bold rounded-xl flex items-center justify-center gap-1.5 transition-colors"
               >
                 <MessageCircle size={13} /> Check-in info
               </a>
               <a
                 href={viberUrl(r.kontakt)}
-                className="w-11 h-10 bg-purple-500 hover:bg-purple-600 text-white rounded-xl flex items-center justify-center transition-colors flex-shrink-0"
+                className="w-12 h-12 bg-purple-500 hover:bg-purple-600 text-white rounded-xl flex items-center justify-center transition-colors flex-shrink-0"
               >
-                <PhoneCall size={14} />
+                <PhoneCall size={16} />
               </a>
               <a
                 href={`tel:${r.kontakt}`}
-                className="w-11 h-10 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-600 dark:text-slate-300 rounded-xl flex items-center justify-center transition-colors flex-shrink-0"
+                className="w-12 h-12 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-600 dark:text-slate-300 rounded-xl flex items-center justify-center transition-colors flex-shrink-0"
               >
-                <Phone size={14} />
+                <Phone size={16} />
               </a>
             </>
           ) : (
@@ -237,21 +237,21 @@ function DepartureCard({ r, apt, onCheckoutConfirm }) {
               <a
                 href={waMsg(r.kontakt, checkoutTemplate(r, apt))}
                 target="_blank" rel="noreferrer"
-                className="flex-1 py-2.5 bg-blue-500 hover:bg-blue-600 text-white text-xs font-bold rounded-xl flex items-center justify-center gap-1.5 transition-colors"
+                className="flex-1 min-h-[48px] bg-blue-500 hover:bg-blue-600 text-white text-xs font-bold rounded-xl flex items-center justify-center gap-1.5 transition-colors"
               >
                 <MessageCircle size={13} /> Checkout reminder
               </a>
               <a
                 href={viberUrl(r.kontakt)}
-                className="w-11 h-10 bg-purple-500 hover:bg-purple-600 text-white rounded-xl flex items-center justify-center transition-colors flex-shrink-0"
+                className="w-12 h-12 bg-purple-500 hover:bg-purple-600 text-white rounded-xl flex items-center justify-center transition-colors flex-shrink-0"
               >
-                <PhoneCall size={14} />
+                <PhoneCall size={16} />
               </a>
             </>
           ) : (
             <button
               onClick={() => onCheckoutConfirm?.(r.id)}
-              className="flex-1 py-2.5 bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 text-xs font-bold rounded-xl flex items-center justify-center gap-1.5 border border-blue-200 dark:border-blue-800 transition-colors"
+              className="flex-1 min-h-[48px] bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 text-xs font-bold rounded-xl flex items-center justify-center gap-1.5 border border-blue-200 dark:border-blue-800 transition-colors"
             >
               <CheckCircle2 size={13} /> Potvrdi checkout
             </button>
@@ -511,7 +511,7 @@ export default function Dashboard({ apartmani = [], onApartmaniChange, onNavigat
                   </div>
                   {r.kontakt && (
                     <a href={waMsg(r.kontakt, `Pozdrav ${r.gost}, proveravamo status. Jeste li stigli?`)} target="_blank" rel="noreferrer"
-                      className="flex-shrink-0 w-9 h-9 bg-green-500 text-white rounded-xl flex items-center justify-center active:scale-90 transition-transform">
+                      className="flex-shrink-0 w-12 h-12 bg-green-500 text-white rounded-xl flex items-center justify-center active:scale-90 transition-transform">
                       <MessageCircle size={14} />
                     </a>
                   )}
@@ -528,7 +528,7 @@ export default function Dashboard({ apartmani = [], onApartmaniChange, onNavigat
                     <p className="text-xs text-slate-500">{r.gost} dolazi sutra · {apt?.naziv}</p>
                   </div>
                   <button onClick={() => onNavigate('cistacije')}
-                    className="flex-shrink-0 px-3 py-1.5 bg-amber-500 text-white text-xs font-bold rounded-xl active:scale-90 transition-transform">
+                    className="flex-shrink-0 px-4 min-h-[48px] bg-amber-500 text-white text-xs font-bold rounded-xl active:scale-90 transition-transform flex items-center">
                     Dodaj →
                   </button>
                 </div>

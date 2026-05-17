@@ -357,14 +357,14 @@ export default function InboxModal({ detalji, apt, user, onClose, onEdit }) {
                       target="_blank"
                       rel="noreferrer"
                       onClick={() => onTemplateSend(tmpl.label, 'whatsapp')}
-                      className="flex-1 py-2 text-xs font-bold bg-green-500 hover:bg-green-600 text-white rounded-lg flex items-center justify-center gap-1.5 transition-colors active:scale-95"
+                      className="flex-1 min-h-[48px] text-xs font-bold bg-green-500 hover:bg-green-600 text-white rounded-xl flex items-center justify-center gap-1.5 transition-colors active:scale-95"
                     >
                       <MessageCircle size={13} /> WhatsApp
                     </a>
                     <a
                       href={viberUrl(tel)}
                       onClick={() => onTemplateSend(tmpl.label, 'viber')}
-                      className="flex-1 py-2 text-xs font-bold bg-purple-500 hover:bg-purple-600 text-white rounded-lg flex items-center justify-center gap-1.5 transition-colors active:scale-95"
+                      className="flex-1 min-h-[48px] text-xs font-bold bg-purple-500 hover:bg-purple-600 text-white rounded-xl flex items-center justify-center gap-1.5 transition-colors active:scale-95"
                     >
                       <PhoneCall size={13} /> Viber
                     </a>
