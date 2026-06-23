@@ -4,6 +4,7 @@ import { Plus, X, Search, Home, Link, Pencil, Trash2, Phone, MessageCircle, Phon
 import { supabase, mapRezervacija, logActivity } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
 import { haptic } from '../utils/haptics'
+import { noci, cenaRezervacije } from '../utils/calc'
 import InboxModal from '../components/InboxModal'
 import WorkflowToast from '../components/WorkflowToast'
 import { runWorkflows, loadWorkflowSettings, saveWorkflowSettings, WORKFLOW_DEFS } from '../lib/workflows'
@@ -25,11 +26,9 @@ function viberUrl(tel) { return `viber://chat?number=${encodeURIComponent(tel.re
 function RezModal({ forma, setForma, onSacuvaj, onOtkazi, naslov, apartmani }) {
   // ── Inline kalkulacija ────────────────────────────────────────────────────
   const apt      = apartmani.find(a => String(a.id) === String(forma.apartmanId))
-  const noćenja  = (forma.dolazak && forma.odlazak)
-    ? Math.max(0, Math.round((new Date(forma.odlazak) - new Date(forma.dolazak)) / 86400000))
-    : 0
+  const noćenja  = noci(forma.dolazak, forma.odlazak)
   const cenaPN   = apt?.cenaPoNoci || 0
-  const ukupno   = noćenja * cenaPN
+  const ukupno   = cenaRezervacije(forma.dolazak, forma.odlazak, cenaPN)
   const showCalc = noćenja > 0 && cenaPN > 0
 
   const inputCls = "w-full px-3 py-2 text-sm border border-slate-200 dark:border-slate-600 rounded-lg outline-none focus:border-teal-500 bg-transparent dark:text-white"
@@ -239,8 +238,7 @@ export default function Rezervacije({ syncedRez = [], apartmani = [] }) {
   async function sacuvaj() {
     if (!forma.gost || !forma.dolazak || !forma.odlazak) return
     const apt = apartmani.find(a => a.id === Number(forma.apartmanId))
-    const nights = Math.max(1, Math.round((new Date(forma.odlazak) - new Date(forma.dolazak)) / 86400000))
-    const cena = nights * (apt?.cenaPoNoci || 0)
+    const cena = cenaRezervacije(forma.dolazak, forma.odlazak, apt?.cenaPoNoci)
     const payload = {
       gost: forma.gost, apartman_id: Number(forma.apartmanId), dolazak: forma.dolazak,
       odlazak: forma.odlazak, cena, status: forma.status, izvor: forma.izvor,

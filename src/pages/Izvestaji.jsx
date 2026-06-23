@@ -7,9 +7,9 @@ import {
 import jsPDF from 'jspdf'
 import autoTable from 'jspdf-autotable'
 import { supabase, mapGost, punoIme, eturistaKompletan } from '../lib/supabase'
+import { noci } from '../utils/calc'
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
-function noći(a, b) { return Math.max(0, Math.round((new Date(b) - new Date(a)) / 86400000)) }
 function mesecNaziv(m) {
   return ['Januar','Februar','Mart','April','Maj','Jun','Jul','Avgust','Septembar','Oktobar','Novembar','Decembar'][m - 1] || ''
 }
@@ -140,10 +140,10 @@ function generateMesecni(rezs, trans, apartmani, mesec, godina, aptFilter) {
       head: [['Gost', 'Apartman', 'Dolazak', 'Odlazak', 'Noci', 'Gostiju', 'EUR']],
       body: filtRez.map(r => {
         const apt = apartmani.find(a => a.id === r.apartman_id)
-        return [s(r.gost), s(apt?.naziv||'—'), r.dolazak, r.odlazak, noći(r.dolazak,r.odlazak), r.br_gostiju||1, (r.cena||0).toFixed(2)]
+        return [s(r.gost), s(apt?.naziv||'—'), r.dolazak, r.odlazak, noci(r.dolazak,r.odlazak), r.br_gostiju||1, (r.cena||0).toFixed(2)]
       }),
       foot: [[{ content: 'UKUPNO', colSpan: 4, styles: { fontStyle: 'bold' } },
-              filtRez.reduce((a,r)=>a+noći(r.dolazak,r.odlazak),0), '',
+              filtRez.reduce((a,r)=>a+noci(r.dolazak,r.odlazak),0), '',
               { content: filtRez.reduce((a,r)=>a+(r.cena||0),0).toFixed(2), styles: { fontStyle: 'bold' } }]],
       footStyles: { fillColor: [240, 253, 250], textColor: TEAL, fontStyle: 'bold' }
     })
@@ -332,7 +332,7 @@ function generateOccupancy(rezs, trans, apartmani, mesec, godina, aptFilter) {
       head: [['Gost', 'Apartman', 'Dolazak', 'Odlazak', 'Noci', '% meseca']],
       body: filtRez.map(r => {
         const apt  = apartmani.find(a => a.id === r.apartman_id)
-        const noci = noći(r.dolazak, r.odlazak)
+        const noci = noci(r.dolazak, r.odlazak)
         return [s(r.gost), s(apt?.naziv||'—'), r.dolazak, r.odlazak, noci, `${Math.round(noci/daysInMonth*100)}%`]
       })
     })
@@ -386,7 +386,7 @@ function generateTax(rezs, trans, apartmani, mesec, godina, aptFilter) {
   // Tabela
   y = pdfSection(doc, y, 'Pregled gostiju i takse', AMBER)
 
-  const ukupnaTaksa = filtRez.reduce((sum, r) => sum + noći(r.dolazak,r.odlazak) * (r.br_gostiju||1) * TAKSA, 0)
+  const ukupnaTaksa = filtRez.reduce((sum, r) => sum + noci(r.dolazak,r.odlazak) * (r.br_gostiju||1) * TAKSA, 0)
 
   if (filtRez.length === 0) {
     doc.setFontSize(8.5); doc.setTextColor(150,150,150)
@@ -400,7 +400,7 @@ function generateTax(rezs, trans, apartmani, mesec, godina, aptFilter) {
       head: [['Gost', 'Apartman', 'Dolazak', 'Odlazak', 'Noci', 'Gostiju', 'Taksa (RSD)']],
       body: filtRez.map(r => {
         const apt   = apartmani.find(a => a.id === r.apartman_id)
-        const noci  = noći(r.dolazak, r.odlazak)
+        const noci  = noci(r.dolazak, r.odlazak)
         const gost  = r.br_gostiju || 1
         return [s(r.gost), s(apt?.naziv||'—'), r.dolazak, r.odlazak, noci, gost, `${(noci*gost*TAKSA).toLocaleString()} RSD`]
       }),
@@ -415,7 +415,7 @@ function generateTax(rezs, trans, apartmani, mesec, godina, aptFilter) {
   if (y > 230) { doc.addPage(); y = 20 }
   y = pdfSection(doc, y, 'Rezime takse')
 
-  const totalNoci    = filtRez.reduce((a,r)=>a+noći(r.dolazak,r.odlazak), 0)
+  const totalNoci    = filtRez.reduce((a,r)=>a+noci(r.dolazak,r.odlazak), 0)
   const totalGostiju = filtRez.reduce((a,r)=>a+(r.br_gostiju||1), 0)
 
   pdfSummaryBox(doc, y, [

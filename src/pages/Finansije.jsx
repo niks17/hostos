@@ -8,13 +8,10 @@ import { supabase, mapTransakcija, mapRezervacija } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
 import { haptic } from '../utils/haptics'
 import { generateReport } from '../utils/generateReport'
+import { noci, taksaRezervacije } from '../utils/calc'
 
 const KATEGORIJE = ['Čišćenje', 'Komunalije', 'Popravka', 'Provizija', 'Boravišna taksa', 'Ostalo']
 const MESECI_NAZIVI = ['Januar','Februar','Mart','April','Maj','Jun','Jul','Avgust','Septembar','Oktobar','Novembar','Decembar']
-
-function noći(dolazak, odlazak) {
-  return Math.max(1, Math.round((new Date(odlazak) - new Date(dolazak)) / 86400000))
-}
 
 function CustomTooltip({ active, payload, label }) {
   if (!active || !payload?.length) return null
@@ -139,7 +136,7 @@ function BtTab({ rezervacije, apartmani, userId }) {
   const meseci = Object.keys(poMesecima).sort().reverse()
 
   const taksaZaMesec = (m) =>
-    poMesecima[m].reduce((s, r) => s + noći(r.dolazak, r.odlazak) * (r.brGostiju || 1) * stopa, 0)
+    poMesecima[m].reduce((s, r) => s + taksaRezervacije(r.dolazak, r.odlazak, r.brGostiju, stopa), 0)
 
   const ukupnoUplaceno  = meseci.filter(m =>  placeni[m]?.placeno).reduce((s, m) => s + taksaZaMesec(m), 0)
   const ukupnoZaUplatu  = meseci.filter(m => !placeni[m]?.placeno).reduce((s, m) => s + taksaZaMesec(m), 0)
@@ -224,7 +221,7 @@ function BtTab({ rezervacije, apartmani, userId }) {
                   {MESECI_NAZIVI[Number(mes) - 1]} {god}
                 </p>
                 <p className="text-xs text-slate-400">
-                  {rezMesec.length} rezervacija · {rezMesec.reduce((s, r) => s + noći(r.dolazak, r.odlazak) * (r.brGostiju || 1), 0)} osobonoći
+                  {rezMesec.length} rezervacija · {rezMesec.reduce((s, r) => s + noci(r.dolazak, r.odlazak) * (r.brGostiju || 1), 0)} osobonoći
                 </p>
                 {/* Datum kada je oznaceno placenim */}
                 {jeplacen && placenDatum && (
@@ -265,7 +262,7 @@ function BtTab({ rezervacije, apartmani, userId }) {
             <div className="divide-y divide-slate-100 dark:divide-slate-700/50">
               {rezMesec.map(r => {
                 const apt = apartmani.find(a => a.id === r.apartmanId)
-                const n   = noći(r.dolazak, r.odlazak)
+                const n   = noci(r.dolazak, r.odlazak)
                 const g   = r.brGostiju || 1
                 return (
                   <div key={r.id} className="flex items-center gap-4 px-5 py-3 text-sm">

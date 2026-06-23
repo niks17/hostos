@@ -11,6 +11,7 @@ import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGri
 import { supabase, mapRezervacija, TIP_CONFIG } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
 import { haptic } from '../utils/haptics'
+import { noci } from '../utils/calc'
 
 // ─── Dynamic background by time of day ────────────────────────────────────────
 function getDobaGradient() {
@@ -38,7 +39,6 @@ function todayStr()     { return new Date().toISOString().split('T')[0] }
 function yesterdayStr() { const d = new Date(); d.setDate(d.getDate() - 1); return d.toISOString().split('T')[0] }
 function tomorrowStr()  { const d = new Date(); d.setDate(d.getDate() + 1); return d.toISOString().split('T')[0] }
 function in7Days()      { const d = new Date(); d.setDate(d.getDate() + 7);  return d.toISOString().split('T')[0] }
-function noći(a, b)     { return Math.max(1, Math.round((new Date(b) - new Date(a)) / 86400000)) }
 
 function waMsg(tel, tekst) { return `https://wa.me/${tel?.replace(/\D/g,'')}?text=${encodeURIComponent(tekst)}` }
 function viberUrl(tel)      { return `viber://chat?number=${encodeURIComponent(tel?.replace(/[\s\-()]/g,'') || '')}` }
@@ -183,7 +183,7 @@ function OnboardingScreen({ profile, onApartmanCreated, onNavigate }) {
 
 // ─── Action Card: Arrival (swipe-to-action) ───────────────────────────────────
 function ArrivalCard({ r, apt }) {
-  const nights      = noći(r.dolazak, r.odlazak)
+  const nights      = noci(r.dolazak, r.odlazak)
   const hasContact  = !!r.kontakt
   const THRESHOLD   = 72
   const MAX_OFFSET  = 92
