@@ -33,8 +33,7 @@ export default function Sidebar({ aktivnaStrana, setAktivnaStrana, tamniRezim, s
       {/* Logo */}
       <div className="px-5 py-5" style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
         <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
-            style={{ backgroundColor: '#01696f' }}>
+          <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 bg-teal-600">
             <Building2 size={19} className="text-white" />
           </div>
           <div>
@@ -64,7 +63,7 @@ export default function Sidebar({ aktivnaStrana, setAktivnaStrana, tamniRezim, s
                   : 'text-white/40 hover:text-white/80 hover:bg-white/5'
                 }
               `}
-              style={aktivan ? { backgroundColor: '#01696f' } : {}}
+              style={aktivan ? { backgroundColor: 'var(--color-primary)' } : {}}
             >
               <Ikona size={17} strokeWidth={aktivan ? 2.2 : 1.8} />
               <span className="flex-1 text-left">{stavka.naziv}</span>
@@ -87,13 +86,14 @@ export default function Sidebar({ aktivnaStrana, setAktivnaStrana, tamniRezim, s
         {/* Dark mode toggle */}
         <button
           onClick={() => setTamniRezim(!tamniRezim)}
+          aria-label={tamniRezim ? 'Prebaci na svetli režim' : 'Prebaci na tamni režim'}
           className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm
             text-white/40 hover:text-white/80 hover:bg-white/5
             transition-all duration-150 active:scale-95"
         >
           {tamniRezim
-            ? <Sun size={17} strokeWidth={1.8} />
-            : <Moon size={17} strokeWidth={1.8} />
+            ? <Sun size={17} strokeWidth={1.8} aria-hidden="true" />
+            : <Moon size={17} strokeWidth={1.8} aria-hidden="true" />
           }
           <span>{tamniRezim ? 'Svetli režim' : 'Tamni režim'}</span>
         </button>
@@ -101,8 +101,7 @@ export default function Sidebar({ aktivnaStrana, setAktivnaStrana, tamniRezim, s
         {/* User row */}
         <div className="flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-white/5 transition-colors group">
           <div className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0
-            text-white text-xs font-black"
-            style={{ backgroundColor: '#01696f' }}>
+            text-white text-xs font-black bg-teal-600">
             {initials(profile?.ime)}
           </div>
           <div className="flex-1 min-w-0">

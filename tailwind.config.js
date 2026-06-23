@@ -38,8 +38,7 @@ export default {
         slideDown: { from: { opacity: 0, transform: 'translateY(-10px)' },  to: { opacity: 1, transform: 'translateY(0)' } },
         scaleIn:   { from: { opacity: 0, transform: 'scale(0.94)' },        to: { opacity: 1, transform: 'scale(1)' } },
         bounceIn:  {
-          '0%':   { opacity: 0, transform: 'scale(0.88)' },
-          '60%':  { transform: 'scale(1.04)' },
+          '0%':   { opacity: 0, transform: 'scale(0.92)' },
           '100%': { opacity: 1, transform: 'scale(1)' },
         },
         pageEnter: { from: { opacity: 0, transform: 'translateY(10px)' }, to: { opacity: 1, transform: 'translateY(0)' } },

@@ -39,7 +39,7 @@ export default function BottomNav({ aktivnaStrana, setAktivnaStrana, problemCoun
                 absolute top-0 left-1/2 -translate-x-1/2
                 h-0.5 w-8 rounded-full transition-all duration-300
                 ${aktivan ? 'opacity-100' : 'opacity-0 w-0'}
-              `} style={{ backgroundColor: '#01696f' }} />
+              `} className="bg-teal-600" />
 
               {/* Icon container */}
               <div className={`
@@ -53,7 +53,7 @@ export default function BottomNav({ aktivnaStrana, setAktivnaStrana, problemCoun
                 <Ikona
                   size={20}
                   strokeWidth={aktivan ? 2.2 : 1.8}
-                  style={{ color: aktivan ? '#01696f' : s.badge && problemCount > 0 ? '#ef4444' : undefined }}
+                  style={{ color: aktivan ? 'var(--color-primary)' : s.badge && problemCount > 0 ? '#ef4444' : undefined }}
                   className={aktivan || (s.badge && problemCount > 0) ? '' : 'text-slate-400 dark:text-slate-500'}
                 />
                 {/* Red badge */}
@@ -71,7 +71,7 @@ export default function BottomNav({ aktivnaStrana, setAktivnaStrana, problemCoun
                     ? 'opacity-100'
                     : 'opacity-40 dark:opacity-30'
                 }`}
-                style={{ color: aktivan ? '#01696f' : undefined }}
+                style={{ color: aktivan ? 'var(--color-primary)' : undefined }}
               >
                 {s.naziv}
               </span>

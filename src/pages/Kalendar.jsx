@@ -156,8 +156,7 @@ export default function Kalendar({ syncedRez = [], apartmani = [] }) {
             <h2 className="font-semibold text-slate-800 dark:text-white">{MESECI[mesec]} {godina}</h2>
             <button
               onClick={() => setNovaRez(true)}
-              className="flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 text-white rounded-lg hover:opacity-90 transition-opacity"
-              style={{ backgroundColor: '#01696f' }}
+              className="flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 text-white rounded-lg hover:opacity-90 transition-opacity bg-teal-600"
             >
               <Plus size={13} /> Nova rezervacija
             </button>
@@ -198,7 +197,7 @@ export default function Kalendar({ syncedRez = [], apartmani = [] }) {
                       >
                         <span className={`text-xs font-medium w-6 h-6 flex items-center justify-center rounded-full
                           ${isToday ? 'text-white font-bold' : 'text-slate-500 dark:text-slate-400'}`}
-                          style={isToday ? { backgroundColor: '#01696f' } : {}}
+                          style={isToday ? { backgroundColor: 'var(--color-primary)' } : {}}
                         >
                           {cell.day}
                         </span>
@@ -349,7 +348,7 @@ export default function Kalendar({ syncedRez = [], apartmani = [] }) {
             </div>
             <div className="flex gap-3 mt-5">
               <button onClick={() => setNovaRez(false)} className="flex-1 py-2 text-sm font-medium text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-600 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors">Otkaži</button>
-              <button onClick={dodajRez} className="flex-1 py-2 text-sm font-semibold text-white rounded-xl hover:opacity-90 transition-opacity" style={{ backgroundColor: '#01696f' }}>Sačuvaj</button>
+              <button onClick={dodajRez} className="flex-1 py-2 text-sm font-semibold text-white rounded-xl hover:opacity-90 transition-opacity bg-teal-600">Sačuvaj</button>
             </div>
           </div>
         </div>
@@ -409,7 +408,7 @@ export default function Kalendar({ syncedRez = [], apartmani = [] }) {
             </div>
             <div className="flex gap-3 mt-5">
               <button onClick={() => setIzmenaRez(null)} className="flex-1 py-2 text-sm font-medium text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-600 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors">Otkaži</button>
-              <button onClick={sacuvajIzmenu} className="flex-1 py-2 text-sm font-semibold text-white rounded-xl hover:opacity-90 transition-opacity" style={{ backgroundColor: '#01696f' }}>Sačuvaj</button>
+              <button onClick={sacuvajIzmenu} className="flex-1 py-2 text-sm font-semibold text-white rounded-xl hover:opacity-90 transition-opacity bg-teal-600">Sačuvaj</button>
             </div>
           </div>
         </div>

@@ -157,13 +157,13 @@ export default function GuestPortalModal({ apartman, onClose, onSaved }) {
             <div>
               <div className="flex items-center gap-2 mb-1">
                 <div className="w-8 h-8 rounded-xl flex items-center justify-center" style={{ backgroundColor: '#01696f18' }}>
-                  <Link size={16} style={{ color: '#01696f' }} />
+                  <Link size={16} className="text-teal-600" />
                 </div>
                 <h2 className="font-black text-slate-800 dark:text-white text-lg">Guest Portal</h2>
                 {/* Completion badge */}
                 {filledCount > 0 && (
                   <span className="text-[10px] font-bold px-2 py-0.5 rounded-full text-white"
-                    style={{ backgroundColor: completionPct === 100 ? '#10b981' : '#01696f' }}>
+                    style={{ backgroundColor: completionPct === 100 ? '#10b981' : 'var(--color-primary)' }}>
                     {filledCount}/{SECTIONS.length}
                   </span>
                 )}
@@ -192,7 +192,7 @@ export default function GuestPortalModal({ apartman, onClose, onSaved }) {
                   <button
                     onClick={copyLink}
                     className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold text-white transition-all active:scale-95"
-                    style={{ backgroundColor: copied ? '#10b981' : '#01696f' }}
+                    style={{ backgroundColor: copied ? '#10b981' : 'var(--color-primary)' }}
                   >
                     {copied ? <><Check size={12} /> OK</> : <><Copy size={12} /> Kopiraj</>}
                   </button>
@@ -239,8 +239,7 @@ export default function GuestPortalModal({ apartman, onClose, onSaved }) {
               <button
                 onClick={generateToken}
                 disabled={working}
-                className="px-4 py-2 rounded-xl text-white text-sm font-bold disabled:opacity-60 flex items-center gap-2 mx-auto transition-opacity"
-                style={{ backgroundColor: '#01696f' }}
+                className="px-4 py-2 rounded-xl text-white text-sm font-bold disabled:opacity-60 flex items-center gap-2 mx-auto transition-opacity bg-teal-600"
               >
                 <RefreshCw size={13} className={working ? 'animate-spin' : ''} />
                 {working ? 'Generišem...' : 'Aktiviraj portal'}
@@ -276,7 +275,7 @@ export default function GuestPortalModal({ apartman, onClose, onSaved }) {
                 <div className="flex-1 h-1.5 bg-slate-100 dark:bg-slate-700 rounded-full overflow-hidden">
                   <div
                     className="h-full rounded-full transition-all duration-500"
-                    style={{ width: `${completionPct}%`, backgroundColor: completionPct === 100 ? '#10b981' : '#01696f' }}
+                    style={{ width: `${completionPct}%`, backgroundColor: completionPct === 100 ? '#10b981' : 'var(--color-primary)' }}
                   />
                 </div>
                 <span className="text-[10px] font-bold text-slate-400 flex-shrink-0">
@@ -342,7 +341,7 @@ export default function GuestPortalModal({ apartman, onClose, onSaved }) {
                   filledSections.map(({ key, label, icon: Icon }) => (
                     <div key={key} className="bg-white dark:bg-slate-800 rounded-xl p-3 border border-slate-100 dark:border-slate-700">
                       <div className="flex items-center gap-2 mb-1">
-                        <Icon size={12} style={{ color: '#01696f' }} />
+                        <Icon size={12} className="text-teal-600" />
                         <span className="text-xs font-bold text-slate-600 dark:text-slate-300">{label}</span>
                       </div>
                       <p className="text-[11px] text-slate-500 dark:text-slate-400 line-clamp-2">{forma[key]}</p>
@@ -364,8 +363,7 @@ export default function GuestPortalModal({ apartman, onClose, onSaved }) {
           <button
             onClick={save}
             disabled={saving}
-            className="flex-1 py-2.5 text-sm font-bold text-white rounded-2xl hover:opacity-90 disabled:opacity-60 transition-opacity"
-            style={{ backgroundColor: '#01696f' }}
+            className="flex-1 py-2.5 text-sm font-bold text-white rounded-2xl hover:opacity-90 disabled:opacity-60 transition-opacity bg-teal-600"
           >
             {saving ? 'Čuvam...' : 'Sačuvaj'}
           </button>

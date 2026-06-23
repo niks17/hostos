@@ -144,7 +144,7 @@ function RezModal({ forma, setForma, onSacuvaj, onOtkazi, naslov, apartmani }) {
 
         <div className="flex gap-3 mt-5">
           <button onClick={onOtkazi} className="flex-1 py-2 text-sm font-medium text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-600 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors">Otkaži</button>
-          <button onClick={onSacuvaj} className="flex-1 py-2 text-sm font-semibold text-white rounded-xl hover:opacity-90 transition-opacity" style={{ backgroundColor: '#01696f' }}>Sačuvaj</button>
+          <button onClick={onSacuvaj} className="flex-1 py-2 text-sm font-semibold text-white rounded-xl hover:opacity-90 transition-opacity bg-teal-600">Sačuvaj</button>
         </div>
       </div>
     </div>
@@ -307,7 +307,7 @@ export default function Rezervacije({ syncedRez = [], apartmani = [] }) {
           {FILTERI.map(f => (
             <button key={f} onClick={() => setFilter(f)}
               className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors ${filter === f ? 'text-white' : 'bg-white dark:bg-slate-800 text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-slate-700'}`}
-              style={filter === f ? { backgroundColor: '#01696f' } : {}}>
+              style={filter === f ? { backgroundColor: 'var(--color-primary)' } : {}}>
               {filterNaziv[f]}
             </button>
           ))}
@@ -326,13 +326,12 @@ export default function Rezervacije({ syncedRez = [], apartmani = [] }) {
           >
             <Zap size={16} />
             {/* Dot showing how many workflows are active */}
-            <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full text-[9px] font-black text-white flex items-center justify-center" style={{ backgroundColor: '#01696f' }}>
+            <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full text-[9px] font-black text-white flex items-center justify-center bg-teal-600">
               {Object.values(workflowSettings).filter(Boolean).length}
             </span>
           </button>
           <button onClick={otvoriNovu}
-            className="flex items-center gap-1.5 px-4 py-2 text-sm font-semibold text-white rounded-lg hover:opacity-90 transition-opacity whitespace-nowrap"
-            style={{ backgroundColor: '#01696f' }}>
+            className="flex items-center gap-1.5 px-4 py-2 text-sm font-semibold text-white rounded-lg hover:opacity-90 transition-opacity whitespace-nowrap bg-teal-600">
             <Plus size={16} /> Nova
           </button>
         </div>
@@ -418,7 +417,7 @@ export default function Rezervacije({ syncedRez = [], apartmani = [] }) {
             <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100 dark:border-slate-700">
               <div className="flex items-center gap-2.5">
                 <div className="w-8 h-8 rounded-xl flex items-center justify-center" style={{ backgroundColor: '#01696f20' }}>
-                  <Zap size={16} style={{ color: '#01696f' }} />
+                  <Zap size={16} className="text-teal-600" />
                 </div>
                 <div>
                   <h3 className="font-bold text-slate-800 dark:text-white text-sm">Auto Workflows</h3>
@@ -455,7 +454,7 @@ export default function Rezervacije({ syncedRez = [], apartmani = [] }) {
                     </div>
                     <div className="flex-shrink-0">
                       {enabled
-                        ? <ToggleRight size={22} style={{ color: '#01696f' }} />
+                        ? <ToggleRight size={22} className="text-teal-600" />
                         : <ToggleLeft  size={22} className="text-slate-300 dark:text-slate-600" />
                       }
                     </div>

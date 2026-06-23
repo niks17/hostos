@@ -2,6 +2,13 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ── Design tokens ────────────────────────────────────────────────────────── */
+:root {
+  --color-primary:      #01696f;
+  --color-primary-dark: #024f53;
+  --color-sidebar:      #0f172a;
+}
+
 /* ── Reset & base ─────────────────────────────────────────────────────────── */
 *, *::before, *::after {
   box-sizing: border-box;
@@ -133,7 +140,13 @@ button, a, [role="button"] {
 
 /* ── Input focus ring ─────────────────────────────────────────────────────── */
 input:focus, textarea:focus, select:focus {
-  outline: none;
+  outline: none; /* removed default, replaced with focus-visible below */
+}
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible {
+  outline: 2px solid #01696f;
+  outline-offset: 2px;
 }
 
 /* ── Modal backdrop blur (when supported) ────────────────────────────────── */
@@ -149,6 +162,30 @@ input:focus, textarea:focus, select:focus {
 }
 .workflow-toast-progress {
   animation: toast-shrink 7s linear forwards;
+}
+
+/* ── Reduced motion ───────────────────────────────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  .page-enter,
+  .animate-fade-in,
+  .animate-slide-up,
+  .animate-slide-down,
+  .animate-scale-in {
+    animation: none !important;
+    opacity: 1 !important;
+    transform: none !important;
+  }
+  .confetti-particle,
+  .btn-lock-pulse {
+    animation: none !important;
+  }
+  .skeleton {
+    animation: none !important;
+    background: #e2e8f0;
+  }
+  .dark .skeleton {
+    background: #334155;
+  }
 }
 
 /* ── Konfeti čestica (CistacijeHub) ──────────────────────────────────────── */

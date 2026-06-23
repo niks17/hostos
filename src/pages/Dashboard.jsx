@@ -84,7 +84,7 @@ function OnboardingScreen({ profile, onApartmanCreated, onNavigate }) {
     setSaving(true); setError('')
     const { data, error: err } = await supabase.from('apartmani').insert([{
       naziv: naziv.trim(), lokacija: lokacija.trim(),
-      cena_po_noci: parseFloat(cena) || 50, boja: '#01696f', kapacitet: 2,
+      cena_po_noci: parseFloat(cena) || 50, boja: 'var(--color-primary)', kapacitet: 2,
     }]).select().single()
     setSaving(false)
     if (err) { setError(err.message); return }
@@ -106,7 +106,7 @@ function OnboardingScreen({ profile, onApartmanCreated, onNavigate }) {
       <div className="text-6xl mb-4">🎉</div>
       <h2 className="text-2xl font-black text-slate-800 dark:text-white mb-2">Sve je podešeno!</h2>
       <p className="text-slate-400 mb-6">HostOS je spreman za rad.</p>
-      <button onClick={() => window.location.reload()} className="px-6 py-3 rounded-2xl text-white font-bold" style={{ backgroundColor: '#01696f' }}>
+      <button onClick={() => window.location.reload()} className="px-6 py-3 rounded-2xl text-white font-bold bg-teal-600">
         Idi na Dashboard →
       </button>
     </div>
@@ -122,13 +122,13 @@ function OnboardingScreen({ profile, onApartmanCreated, onNavigate }) {
           <p className="text-slate-400 mt-1 text-sm">Podesite HostOS za 2 minuta.</p>
         </div>
         <div className="w-full h-2 bg-slate-200 dark:bg-slate-700 rounded-full mb-6">
-          <div className="h-full rounded-full transition-all duration-500" style={{ backgroundColor: '#01696f', width: `${pct}%` }} />
+          <div className="h-full rounded-full transition-all duration-500" style={{ backgroundColor: 'var(--color-primary)', width: `${pct}%` }} />
         </div>
         <div className="space-y-3">
           {/* Step 1 */}
           <div className={`rounded-2xl border bg-white dark:bg-slate-800 overflow-hidden transition-all ${korak === 1 ? 'border-teal-300 dark:border-teal-700 shadow-lg' : korak > 1 ? 'border-emerald-200 dark:border-emerald-800' : 'border-slate-200 dark:border-slate-700 opacity-50'}`}>
             <div className="p-4 flex items-center gap-3">
-              {korak > 1 ? <CheckCircle2 size={20} style={{ color: '#10b981' }} /> : <div className="w-6 h-6 rounded-full flex items-center justify-center text-xs font-black text-white" style={{ backgroundColor: '#01696f' }}>1</div>}
+              {korak > 1 ? <CheckCircle2 size={20} style={{ color: '#10b981' }} /> : <div className="w-6 h-6 rounded-full flex items-center justify-center text-xs font-black text-white bg-teal-600">1</div>}
               <div><p className="font-bold text-slate-800 dark:text-white">Dodaj prvi apartman</p><p className="text-xs text-slate-400">Naziv, lokacija i cena po noći</p></div>
             </div>
             {korak === 1 && (
@@ -137,20 +137,20 @@ function OnboardingScreen({ profile, onApartmanCreated, onNavigate }) {
                 <input value={lokacija} onChange={e => setLokacija(e.target.value)} placeholder="Lokacija" className="w-full px-4 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 text-slate-800 dark:text-white" />
                 <input type="number" value={cena} onChange={e => setCena(e.target.value)} placeholder="Cena po noći (€)" className="w-full px-4 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 text-slate-800 dark:text-white" />
                 {error && <p className="text-xs text-red-500">{error}</p>}
-                <button onClick={sacuvajApartman} disabled={saving || !naziv.trim()} className="w-full py-3 rounded-xl text-white font-bold text-sm disabled:opacity-50" style={{ backgroundColor: '#01696f' }}>{saving ? 'Čuvam...' : 'Dodaj apartman →'}</button>
+                <button onClick={sacuvajApartman} disabled={saving || !naziv.trim()} className="w-full py-3 rounded-xl text-white font-bold text-sm disabled:opacity-50 bg-teal-600">{saving ? 'Čuvam...' : 'Dodaj apartman →'}</button>
               </div>
             )}
           </div>
           {/* Step 2 */}
           <div className={`rounded-2xl border bg-white dark:bg-slate-800 overflow-hidden transition-all ${korak === 2 ? 'border-teal-300 dark:border-teal-700 shadow-lg' : 'border-slate-200 dark:border-slate-700 opacity-50'}`}>
             <div className="p-4 flex items-center gap-3">
-              <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-black ${korak === 2 ? 'text-white' : 'text-slate-400 bg-slate-200 dark:bg-slate-700'}`} style={korak === 2 ? { backgroundColor: '#01696f' } : {}}>2</div>
+              <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-black ${korak === 2 ? 'text-white' : 'text-slate-400 bg-slate-200 dark:bg-slate-700'}`} style={korak === 2 ? { backgroundColor: 'var(--color-primary)' } : {}}>2</div>
               <div><p className="font-bold text-slate-800 dark:text-white">Dodaj prvu rezervaciju</p><p className="text-xs text-slate-400">Ručno ili uvezi iz Booking-a</p></div>
             </div>
             {korak === 2 && (
               <div className="px-4 pb-4 border-t border-slate-100 dark:border-slate-700 pt-4 grid grid-cols-2 gap-3">
                 <button onClick={() => { onNavigate('rezervacije') }} className="flex flex-col items-center gap-2 p-4 rounded-xl border-2 border-teal-200 dark:border-teal-700 bg-teal-50 dark:bg-teal-900/20">
-                  <Plus size={22} style={{ color: '#01696f' }} /><span className="text-xs font-bold text-slate-700 dark:text-slate-200">Unesi ručno</span>
+                  <Plus size={22} className="text-teal-600" /><span className="text-xs font-bold text-slate-700 dark:text-slate-200">Unesi ručno</span>
                 </button>
                 <button onClick={() => setKorak(3)} className="flex flex-col items-center gap-2 p-4 rounded-xl border-2 border-slate-200 dark:border-slate-700">
                   <Link size={22} className="text-slate-400" /><span className="text-xs font-bold text-slate-500 text-center">Poveži Booking</span>
@@ -162,7 +162,7 @@ function OnboardingScreen({ profile, onApartmanCreated, onNavigate }) {
           {/* Step 3 */}
           <div className={`rounded-2xl border bg-white dark:bg-slate-800 overflow-hidden transition-all ${korak === 3 ? 'border-teal-300 dark:border-teal-700 shadow-lg' : 'border-slate-200 dark:border-slate-700 opacity-50'}`}>
             <div className="p-4 flex items-center gap-3">
-              <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-black ${korak === 3 ? 'text-white' : 'text-slate-400 bg-slate-200 dark:bg-slate-700'}`} style={korak === 3 ? { backgroundColor: '#01696f' } : {}}>3</div>
+              <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-black ${korak === 3 ? 'text-white' : 'text-slate-400 bg-slate-200 dark:bg-slate-700'}`} style={korak === 3 ? { backgroundColor: 'var(--color-primary)' } : {}}>3</div>
               <div><p className="font-bold text-slate-800 dark:text-white">Poveži Booking.com</p><p className="text-xs text-slate-400">Automatski uvoz putem iCal linka</p></div>
             </div>
             {korak === 3 && (
@@ -170,7 +170,7 @@ function OnboardingScreen({ profile, onApartmanCreated, onNavigate }) {
                 <div className="p-3 bg-blue-50 dark:bg-blue-900/20 rounded-xl text-xs text-blue-700 dark:text-blue-300"><strong>Kako?</strong> Booking.com → Extranet → Kalendar → iCal link</div>
                 <input value={icalUrl} onChange={e => setIcalUrl(e.target.value)} placeholder="https://admin.booking.com/hotel/..." className="w-full px-4 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 text-slate-800 dark:text-white" />
                 {error && <p className="text-xs text-red-500">{error}</p>}
-                <button onClick={sacuvajIcal} disabled={saving || !icalUrl.trim()} className="w-full py-3 rounded-xl text-white font-bold text-sm disabled:opacity-50" style={{ backgroundColor: '#01696f' }}>{saving ? 'Čuvam...' : 'Poveži →'}</button>
+                <button onClick={sacuvajIcal} disabled={saving || !icalUrl.trim()} className="w-full py-3 rounded-xl text-white font-bold text-sm disabled:opacity-50 bg-teal-600">{saving ? 'Čuvam...' : 'Poveži →'}</button>
                 <button onClick={() => setKorak('done')} className="w-full text-xs text-slate-400 py-1">Preskočim →</button>
               </div>
             )}
@@ -381,7 +381,7 @@ function SectionHeader({ emoji, title, count, boja }) {
       <span className="text-base">{emoji}</span>
       <h2 className="text-sm font-bold text-slate-600 dark:text-slate-300 uppercase tracking-wide">{title}</h2>
       {count > 0 && (
-        <span className="text-[10px] font-black px-1.5 py-0.5 rounded-full text-white" style={{ backgroundColor: boja || '#01696f' }}>
+        <span className="text-[10px] font-black px-1.5 py-0.5 rounded-full text-white" style={{ backgroundColor: boja || 'var(--color-primary)' }}>
           {count}
         </span>
       )}
@@ -742,7 +742,7 @@ export default function Dashboard({ apartmani = [], onApartmaniChange, onNavigat
             <div className="bg-white dark:bg-slate-800 rounded-2xl p-5 shadow-sm border border-slate-100 dark:border-slate-700">
               <h2 className="font-bold text-slate-800 dark:text-white mb-4 flex items-center gap-2">
                 <CalendarCheck size={15} className="text-slate-400" /> Narednih 7 dana
-                <span className="ml-auto text-xs font-bold px-2 py-0.5 rounded-full text-white" style={{ backgroundColor: '#01696f' }}>{narednih7.length}</span>
+                <span className="ml-auto text-xs font-bold px-2 py-0.5 rounded-full text-white bg-teal-600">{narednih7.length}</span>
               </h2>
               <div className="space-y-3">
                 {narednih7.map(r => {
@@ -784,7 +784,7 @@ export default function Dashboard({ apartmani = [], onApartmaniChange, onNavigat
                     <button
                       onClick={() => setGuestPortalApt(a)}
                       className="flex items-center gap-1 px-2.5 py-1.5 text-[11px] font-bold rounded-lg border transition-all active:scale-95"
-                      style={{ color: a.guest_token ? '#01696f' : '#94a3b8', borderColor: a.guest_token ? '#01696f40' : '#e2e8f0', backgroundColor: a.guest_token ? '#01696f08' : 'transparent' }}
+                      style={{ color: a.guest_token ? 'var(--color-primary)' : '#94a3b8', borderColor: a.guest_token ? '#01696f40' : '#e2e8f0', backgroundColor: a.guest_token ? '#01696f08' : 'transparent' }}
                       title="Guest Portal"
                     >
                       <Link size={11} /> {a.guest_token ? 'Portal' : 'Podesi'}

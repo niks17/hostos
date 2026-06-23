@@ -124,8 +124,7 @@ function GostForma({ forma, setForma, onSacuvaj, onOtkazi, naslov }) {
             </button>
             <button
               onClick={onSacuvaj}
-              className="flex-1 py-2.5 text-sm font-semibold text-white rounded-xl hover:opacity-90 transition-opacity"
-              style={{ backgroundColor: '#01696f' }}
+              className="flex-1 py-2.5 text-sm font-semibold text-white rounded-xl hover:opacity-90 transition-opacity bg-teal-600"
             >
               Sačuvaj
             </button>
@@ -269,8 +268,7 @@ export default function Gosti() {
         </div>
         <button
           onClick={otvoriNovog}
-          className="flex items-center gap-1.5 px-4 py-2 text-sm font-semibold text-white rounded-xl hover:opacity-90 transition-opacity"
-          style={{ backgroundColor: '#01696f' }}
+          className="flex items-center gap-1.5 px-4 py-2 text-sm font-semibold text-white rounded-xl hover:opacity-90 transition-opacity bg-teal-600"
         >
           <Plus size={16} /> Novi gost
         </button>
@@ -287,7 +285,7 @@ export default function Gosti() {
               className="bg-white dark:bg-slate-800 rounded-2xl p-4 shadow-sm border border-slate-100 dark:border-slate-700 cursor-pointer hover:border-teal-300 dark:hover:border-teal-700 hover:shadow-md transition-all animate-fade-in group"
             >
               <div className="flex items-start justify-between mb-3">
-                <div className="w-11 h-11 rounded-xl flex items-center justify-center text-white font-bold text-sm flex-shrink-0" style={{ backgroundColor: '#01696f' }}>
+                <div className="w-11 h-11 rounded-xl flex items-center justify-center text-white font-bold text-sm flex-shrink-0 bg-teal-600">
                   {punoIme(g).split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()}
                 </div>
                 <div className="flex items-center gap-1.5">
@@ -344,7 +342,7 @@ export default function Gosti() {
             <div className="p-6 border-b border-slate-100 dark:border-slate-700">
               <div className="flex items-start justify-between mb-4">
                 <div className="flex items-center gap-4">
-                  <div className="w-14 h-14 rounded-2xl flex items-center justify-center text-white font-bold text-lg" style={{ backgroundColor: '#01696f' }}>
+                  <div className="w-14 h-14 rounded-2xl flex items-center justify-center text-white font-bold text-lg bg-teal-600">
                     {punoIme(izabrani).split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()}
                   </div>
                   <div>

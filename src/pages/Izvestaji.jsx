@@ -611,7 +611,7 @@ const REPORTS = [
     title: 'Mesečni izveštaj',
     subtitle: 'Sve rezervacije + finansije + rezime',
     icon: FileText,
-    color: '#01696f',
+    color: 'var(--color-primary)',
     bg: '#01696f12',
     items: ['Tabela svih rezervacija', 'Prihodi i troškovi', 'Popunjenost', 'Neto profit'],
     fn: generateMesecni,
@@ -731,7 +731,7 @@ export default function Izvestaji({ apartmani = [] }) {
       <div className="mb-6">
         <div className="flex items-center gap-3 mb-1">
           <div className="w-10 h-10 rounded-2xl flex items-center justify-center" style={{ backgroundColor: '#01696f20' }}>
-            <FileText size={20} style={{ color: '#01696f' }} />
+            <FileText size={20} className="text-teal-600" />
           </div>
           <div>
             <h1 className="text-2xl font-black text-slate-800 dark:text-white leading-tight">Izveštaji</h1>
@@ -776,7 +776,7 @@ export default function Izvestaji({ apartmani = [] }) {
 
         {/* Period badge */}
         <div className="mt-3 flex items-center gap-2">
-          <span className="text-xs font-bold px-3 py-1 rounded-full text-white" style={{ backgroundColor: '#01696f' }}>
+          <span className="text-xs font-bold px-3 py-1 rounded-full text-white bg-teal-600">
             {mesecNaziv(mesec)} {godina}
           </span>
           {aptFilter !== 'all' && (

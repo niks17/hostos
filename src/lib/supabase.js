@@ -1,9 +1,15 @@
 import { createClient } from '@supabase/supabase-js'
 
-export const supabase = createClient(
-  'https://hsbgxunrslsbeyjwmeou.supabase.co',
-  'sb_publishable_spBwQ9O2iOjRnfRbxVh95g_op31CPt4'
-)
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
+const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY
+
+if (!supabaseUrl || !supabaseKey) {
+  throw new Error(
+    'Nedostaju Supabase env varijable. Kopiraj .env.example u .env i popuni VITE_SUPABASE_URL i VITE_SUPABASE_ANON_KEY.'
+  )
+}
+
+export const supabase = createClient(supabaseUrl, supabaseKey)
 
 // ── Mappers: DB snake_case → frontend camelCase ───────────────────────────────
 export function mapApartman(a) {

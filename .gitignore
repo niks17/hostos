@@ -3,3 +3,6 @@ dist
 package-lock.json
 .env
 .env.local
+
+# Claude Code lokalna podešavanja (mogu sadržati API ključeve)
+.claude/settings.local.json

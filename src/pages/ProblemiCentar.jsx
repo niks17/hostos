@@ -91,7 +91,7 @@ function ProblemCard({ problem, onNavigate }) {
                     : 'bg-white dark:bg-slate-700 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-600'
                   }
                 `}
-                style={i === 0 ? { backgroundColor: a.boja || '#01696f' } : {}}
+                style={i === 0 ? { backgroundColor: a.boja || 'var(--color-primary)' } : {}}
               >
                 {a.ikona && <a.ikona size={12} />}
                 {a.label}

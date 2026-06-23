@@ -4,6 +4,8 @@ import react from '@vitejs/plugin-react'
 export default defineConfig({
   plugins: [react()],
   server: {
+    host: true,        // veži na 0.0.0.0 — dostupno sa telefona preko LAN-a
+    port: 3456,
     proxy: {
       '/api': {
         target: 'http://localhost:3000',

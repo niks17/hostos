@@ -23,7 +23,7 @@ function CustomTooltip({ active, payload, label }) {
       <p className="font-medium text-slate-700 dark:text-slate-200 mb-1">{label}</p>
       {payload.map(p => (
         <p key={p.dataKey} style={{ color: p.color }}>
-          {p.name}: €{p.value.toLocaleString()}
+          {p.name}: €{p.value.toLocaleString('de-DE')}
         </p>
       ))}
     </div>
@@ -172,7 +172,7 @@ function BtTab({ rezervacije, apartmani, userId }) {
                 autoFocus
               />
               <span className="text-xs text-slate-400">RSD</span>
-              <button onClick={() => setEditStopa(false)} className="text-xs font-semibold" style={{ color: '#01696f' }}>OK</button>
+              <button onClick={() => setEditStopa(false)} className="text-xs font-semibold text-teal-600">OK</button>
             </div>
           ) : (
             <div className="flex items-center gap-2">
@@ -315,13 +315,15 @@ export default function Finansije({ apartmani = [] }) {
     setLoading(false)
   }
 
-  const prihod   = tranz.filter(t => t.tip === 'prihod').reduce((s, t) => s + t.iznos, 0)
-  const troskovi = tranz.filter(t => t.tip === 'trosak').reduce((s, t) => s + Math.abs(t.iznos), 0)
+  // Boravišna taksa je u RSD — isključujemo je iz € kalkulacija i grafikona
+  const tranzEuro  = tranz.filter(t => t.kategorija !== 'Boravišna taksa')
+  const prihod   = tranzEuro.filter(t => t.tip === 'prihod').reduce((s, t) => s + t.iznos, 0)
+  const troskovi = tranzEuro.filter(t => t.tip === 'trosak').reduce((s, t) => s + Math.abs(t.iznos), 0)
   const neto     = prihod - troskovi
 
   const mesecniPodaci = (() => {
     const map = {}
-    tranz.forEach(t => {
+    tranzEuro.forEach(t => {
       const m = t.datum?.slice(0, 7) || ''
       if (!map[m]) map[m] = { mesec: m.slice(5), prihod: 0, troskovi: 0 }
       if (t.tip === 'prihod') map[m].prihod += t.iznos
@@ -377,7 +379,7 @@ export default function Finansije({ apartmani = [] }) {
                 ? 'text-white'
                 : 'bg-white dark:bg-slate-800 text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-slate-700'
             }`}
-            style={tab === k ? { backgroundColor: '#01696f' } : {}}
+            style={tab === k ? { backgroundColor: 'var(--color-primary)' } : {}}
           >
             {v}
           </button>
@@ -394,7 +396,7 @@ export default function Finansije({ apartmani = [] }) {
           {/* Stat kartice */}
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
             {[
-              { naziv: 'Ukupan prihod',   iznos: prihod,   ikona: TrendingUp,  boja: '#01696f', valuta: '€' },
+              { naziv: 'Ukupan prihod',   iznos: prihod,   ikona: TrendingUp,  boja: 'var(--color-primary)', valuta: '€' },
               { naziv: 'Troškovi',         iznos: troskovi, ikona: TrendingDown, boja: '#ef4444', valuta: '€' },
               { naziv: 'Neto zarada',      iznos: neto,     ikona: Euro,         boja: '#8b5cf6', valuta: '€' },
               {
@@ -431,7 +433,7 @@ export default function Finansije({ apartmani = [] }) {
               <BarChart data={mesecniPodaci} barGap={4}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" vertical={false} />
                 <XAxis dataKey="mesec" tick={{ fontSize: 12, fill: '#94a3b8' }} axisLine={false} tickLine={false} />
-                <YAxis tick={{ fontSize: 12, fill: '#94a3b8' }} axisLine={false} tickLine={false} width={44} tickFormatter={v => `€${v}`} />
+                <YAxis tick={{ fontSize: 12, fill: '#94a3b8' }} axisLine={false} tickLine={false} width={50} tickFormatter={v => `€${v.toLocaleString('de-DE')}`} />
                 <Tooltip content={<CustomTooltip />} />
                 <Legend formatter={v => <span style={{ fontSize: 12, color: '#94a3b8' }}>{v}</span>} />
                 <Bar dataKey="prihod"   name="Prihod"   fill="#01696f" radius={[4, 4, 0, 0]} />
@@ -453,8 +455,7 @@ export default function Finansije({ apartmani = [] }) {
                 </button>
                 <button
                   onClick={() => setNoviTrosak(true)}
-                  className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-white rounded-lg hover:opacity-90 transition-opacity"
-                  style={{ backgroundColor: '#01696f' }}
+                  className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-white rounded-lg hover:opacity-90 transition-opacity bg-teal-600"
                 >
                   <Plus size={14} /> Novi trošak
                 </button>
@@ -505,7 +506,7 @@ export default function Finansije({ apartmani = [] }) {
                 <div className="flex items-center justify-between mb-5">
                   <div className="flex items-center gap-2">
                     <div className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ backgroundColor: '#01696f20' }}>
-                      <FileText size={18} style={{ color: '#01696f' }} />
+                      <FileText size={18} className="text-teal-600" />
                     </div>
                     <h3 className="font-semibold text-slate-800 dark:text-white">Generiši PDF izveštaj</h3>
                   </div>
@@ -536,8 +537,7 @@ export default function Finansije({ apartmani = [] }) {
                     Otkaži
                   </button>
                   <button onClick={generiši}
-                    className="flex-1 py-2 text-sm font-semibold text-white rounded-xl hover:opacity-90 transition-opacity flex items-center justify-center gap-2"
-                    style={{ backgroundColor: '#01696f' }}>
+                    className="flex-1 py-2 text-sm font-semibold text-white rounded-xl hover:opacity-90 transition-opacity flex items-center justify-center gap-2 bg-teal-600">
                     <FileText size={14} /> Preuzmi PDF
                   </button>
                 </div>
@@ -590,8 +590,7 @@ export default function Finansije({ apartmani = [] }) {
                     Otkaži
                   </button>
                   <button onClick={dodajTrosak}
-                    className="flex-1 py-2 text-sm font-semibold text-white rounded-xl hover:opacity-90 transition-opacity"
-                    style={{ backgroundColor: '#01696f' }}>
+                    className="flex-1 py-2 text-sm font-semibold text-white rounded-xl hover:opacity-90 transition-opacity bg-teal-600">
                     Dodaj
                   </button>
                 </div>

@@ -24,12 +24,11 @@ export default function WorkflowToast({ results, onClose }) {
           style={{ background: 'linear-gradient(135deg, #01696f14, #01696f06)' }}
         >
           <div className="flex items-center gap-2">
-            <Zap size={14} style={{ color: '#01696f' }} />
+            <Zap size={14} className="text-teal-600" />
             <span className="text-sm font-bold text-slate-800 dark:text-white">Auto workflow</span>
             {ok > 0 && (
               <span
-                className="text-[10px] font-black px-1.5 py-0.5 rounded-full text-white"
-                style={{ backgroundColor: '#01696f' }}
+                className="text-[10px] font-black px-1.5 py-0.5 rounded-full text-white bg-teal-600"
               >
                 {ok}
               </span>
@@ -92,8 +91,7 @@ export default function WorkflowToast({ results, onClose }) {
         {/* Progress bar */}
         <div className="h-[3px] bg-slate-100 dark:bg-slate-700">
           <div
-            className="h-full rounded-full workflow-toast-progress"
-            style={{ backgroundColor: '#01696f' }}
+            className="h-full rounded-full workflow-toast-progress bg-teal-600"
           />
         </div>
       </div>

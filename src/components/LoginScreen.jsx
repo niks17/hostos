@@ -41,7 +41,7 @@ export default function LoginScreen() {
           Poslali smo ti link za potvrdu na <strong>{forma.email}</strong>. Klikni na link pa se prijavi.
         </p>
         <button onClick={() => { setUspeh(false); setMod('login') }}
-          className="text-sm font-semibold" style={{ color: '#01696f' }}>
+          className="text-sm font-semibold text-teal-600">
           Nazad na prijavu
         </button>
       </div>
@@ -52,7 +52,7 @@ export default function LoginScreen() {
     <div className="min-h-screen bg-slate-50 dark:bg-slate-900 flex items-center justify-center p-4">
       <div className="bg-white dark:bg-slate-800 rounded-2xl p-8 w-full max-w-sm shadow-xl">
         <div className="text-center mb-8">
-          <div className="w-14 h-14 rounded-2xl flex items-center justify-center mx-auto mb-4" style={{ backgroundColor: '#01696f' }}>
+          <div className="w-14 h-14 rounded-2xl flex items-center justify-center mx-auto mb-4 bg-teal-600">
             <span className="text-white font-bold text-2xl">H</span>
           </div>
           <h1 className="text-xl font-bold text-slate-800 dark:text-white">HostOS</h1>
@@ -90,15 +90,14 @@ export default function LoginScreen() {
         </div>
 
         <button onClick={submit} disabled={loading}
-          className="w-full mt-5 py-2.5 text-sm font-semibold text-white rounded-xl hover:opacity-90 transition-opacity disabled:opacity-50"
-          style={{ backgroundColor: '#01696f' }}>
+          className="w-full mt-5 py-2.5 text-sm font-semibold text-white rounded-xl hover:opacity-90 transition-opacity disabled:opacity-50 bg-teal-600">
           {loading ? 'Učitavanje...' : mod === 'login' ? 'Prijavi se' : 'Napravi nalog'}
         </button>
 
         <p className="text-center text-xs text-slate-400 mt-4">
           {mod === 'login' ? 'Nemaš nalog?' : 'Već imaš nalog?'}
           <button onClick={() => { setMod(mod === 'login' ? 'register' : 'login'); setGreska('') }}
-            className="font-semibold ml-1" style={{ color: '#01696f' }}>
+            className="font-semibold ml-1 text-teal-600">
             {mod === 'login' ? 'Registruj se' : 'Prijavi se'}
           </button>
         </p>

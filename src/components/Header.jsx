@@ -10,7 +10,7 @@ import NotificationBell from './NotificationBell'
 
 const JEZICI = ['Srpski', 'English', 'Deutsch']
 const VALUTE = ['EUR (€)', 'RSD (din)', 'USD ($)']
-const BOJE = ['#01696f', '#3b82f6', '#8b5cf6', '#f59e0b', '#ef4444', '#10b981', '#f97316', '#ec4899']
+const BOJE = ['var(--color-primary)', '#3b82f6', '#8b5cf6', '#f59e0b', '#ef4444', '#10b981', '#f97316', '#ec4899']
 
 const nazivStrane = {
   dashboard: 'Pregled', kalendar: 'Kalendar', rezervacije: 'Rezervacije',
@@ -28,7 +28,7 @@ function initials(ime) {
   return ime.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()
 }
 
-const PRAZNA_APT = { naziv: '', lokacija: '', kapacitet: 2, cenaPoNoci: 50, boja: '#01696f', wifiNaziv: '', wifiSifra: '', checkinInfo: '' }
+const PRAZNA_APT = { naziv: '', lokacija: '', kapacitet: 2, cenaPoNoci: 50, boja: 'var(--color-primary)', wifiNaziv: '', wifiSifra: '', checkinInfo: '' }
 const PRAZNA_CLAN = { email: '', role: 'cistacica' }
 
 export default function Header({ aktivnaStrana, tamniRezim, setTamniRezim, icalSync, apartmani, onApartmaniChange, onNavigate }) {
@@ -157,6 +157,7 @@ export default function Header({ aktivnaStrana, tamniRezim, setTamniRezim, icalS
 
       <div className="flex items-center gap-2">
         <button onClick={() => setTamniRezim(!tamniRezim)}
+          aria-label={tamniRezim ? 'Prebaci na svetli režim' : 'Prebaci na tamni režim'}
           className="md:hidden p-2 rounded-lg text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors">
           {tamniRezim ? <Sun size={18} /> : <Moon size={18} />}
         </button>
@@ -179,9 +180,10 @@ export default function Header({ aktivnaStrana, tamniRezim, setTamniRezim, icalS
 
         <div className="relative">
           <button onClick={() => setOtvorenoProf(!otvorenoProf)}
-            className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ring-2 ring-transparent hover:ring-teal-500 transition-all"
-            style={{ backgroundColor: '#01696f' }}>
-            <span className="text-white text-xs font-bold">{initials(profile?.ime)}</span>
+            aria-label="Otvori meni profila"
+            aria-expanded={otvorenoProf}
+            className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ring-2 ring-transparent hover:ring-teal-500 transition-all bg-teal-600">
+            <span className="text-white text-xs font-bold" aria-hidden="true">{initials(profile?.ime)}</span>
           </button>
 
           {otvorenoProf && (
@@ -191,7 +193,7 @@ export default function Header({ aktivnaStrana, tamniRezim, setTamniRezim, icalS
 
                 <div className="px-5 pt-5 pb-4 border-b border-slate-100 dark:border-slate-700">
                   <div className="flex items-center gap-3">
-                    <div className="w-12 h-12 rounded-xl flex items-center justify-center text-white font-bold text-lg flex-shrink-0" style={{ backgroundColor: '#01696f' }}>
+                    <div className="w-12 h-12 rounded-xl flex items-center justify-center text-white font-bold text-lg flex-shrink-0 bg-teal-600">
                       {initials(profile?.ime)}
                     </div>
                     <div className="flex-1 min-w-0">
@@ -206,7 +208,7 @@ export default function Header({ aktivnaStrana, tamniRezim, setTamniRezim, icalS
                   {tabovi.map(t => (
                     <button key={t.id} onClick={() => setAktivniTab(t.id)}
                       className={`flex-shrink-0 px-3 py-2.5 text-xs font-semibold transition-colors whitespace-nowrap ${aktivniTab === t.id ? 'border-b-2 text-teal-600 dark:text-teal-400' : 'text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300'}`}
-                      style={aktivniTab === t.id ? { borderBottomColor: '#01696f' } : {}}>
+                      style={aktivniTab === t.id ? { borderBottomColor: 'var(--color-primary)' } : {}}>
                       {t.naziv}
                     </button>
                   ))}
@@ -242,7 +244,7 @@ export default function Header({ aktivnaStrana, tamniRezim, setTamniRezim, icalS
                         </div>
                       </div>
                       <button onClick={sacuvajProfil} className="w-full py-2 text-sm font-semibold text-white rounded-xl hover:opacity-90 flex items-center justify-center gap-2 transition-all"
-                        style={{ backgroundColor: sacuvano ? '#10b981' : '#01696f' }}>
+                        style={{ backgroundColor: sacuvano ? '#10b981' : 'var(--color-primary)' }}>
                         <Save size={14} /> {sacuvano ? 'Sačuvano!' : 'Sačuvaj'}
                       </button>
                       <button onClick={signOut} className="w-full py-2 text-sm font-medium text-red-500 border border-red-200 dark:border-red-900/40 rounded-xl hover:bg-red-50 dark:hover:bg-red-900/20 flex items-center justify-center gap-2 transition-colors">
@@ -265,12 +267,14 @@ export default function Header({ aktivnaStrana, tamniRezim, setTamniRezim, icalS
                           <div className="flex items-center gap-1 flex-shrink-0">
                             <p className="text-sm font-semibold text-slate-600 dark:text-slate-300 mr-1">€{a.cenaPoNoci}/noć</p>
                             <button onClick={e => otvoriEditApartman(a, e)}
-                              className="opacity-0 group-hover:opacity-100 p-1 rounded-lg hover:bg-teal-100 dark:hover:bg-teal-900/30 text-slate-400 hover:text-teal-600 transition-all">
-                              <Pencil size={13} />
+                              aria-label={`Izmeni ${a.naziv}`}
+                              className="opacity-0 group-hover:opacity-100 w-8 h-8 flex items-center justify-center rounded-lg hover:bg-teal-100 dark:hover:bg-teal-900/30 text-slate-400 hover:text-teal-600 transition-all">
+                              <Pencil size={13} aria-hidden="true" />
                             </button>
                             <button onClick={e => obrisiApartman(a.id, e)}
-                              className="opacity-0 group-hover:opacity-100 p-1 rounded-lg hover:bg-red-100 dark:hover:bg-red-900/30 text-slate-400 hover:text-red-500 transition-all">
-                              <Trash2 size={13} />
+                              aria-label={`Obriši ${a.naziv}`}
+                              className="opacity-0 group-hover:opacity-100 w-8 h-8 flex items-center justify-center rounded-lg hover:bg-red-100 dark:hover:bg-red-900/30 text-slate-400 hover:text-red-500 transition-all">
+                              <Trash2 size={13} aria-hidden="true" />
                             </button>
                           </div>
                         </div>
@@ -325,11 +329,15 @@ export default function Header({ aktivnaStrana, tamniRezim, setTamniRezim, icalS
                           </div>
                           <div>
                             <label className="text-[10px] font-medium text-slate-500 dark:text-slate-400 mb-1 block">Boja</label>
-                            <div className="flex gap-1.5 flex-wrap">
+                            <div className="flex gap-2 flex-wrap">
                               {BOJE.map(b => (
                                 <button key={b} onClick={() => setAptForma({ ...aptForma, boja: b })}
-                                  className="w-6 h-6 rounded-full transition-all"
-                                  style={{ backgroundColor: b, outline: aptForma.boja === b ? `2px solid ${b}` : 'none', outlineOffset: '2px' }} />
+                                  aria-label={`Boja ${b}`}
+                                  aria-pressed={aptForma.boja === b}
+                                  className="w-8 h-8 rounded-full transition-all flex items-center justify-center"
+                                  style={{ backgroundColor: b, outline: aptForma.boja === b ? `2px solid ${b}` : 'none', outlineOffset: '2px' }}>
+                                  {aptForma.boja === b && <span className="w-2 h-2 rounded-full bg-white/80" aria-hidden="true" />}
+                                </button>
                               ))}
                             </div>
                           </div>
@@ -342,8 +350,7 @@ export default function Header({ aktivnaStrana, tamniRezim, setTamniRezim, icalS
                               Otkaži
                             </button>
                             <button onClick={sacuvajApartman}
-                              className="flex-1 py-1.5 text-xs font-semibold text-white rounded-lg hover:opacity-90 transition-opacity"
-                              style={{ backgroundColor: '#01696f' }}>
+                              className="flex-1 py-1.5 text-xs font-semibold text-white rounded-lg hover:opacity-90 transition-opacity bg-teal-600">
                               {aptEditId ? 'Sačuvaj' : 'Dodaj'}
                             </button>
                           </div>
@@ -380,8 +387,9 @@ export default function Header({ aktivnaStrana, tamniRezim, setTamniRezim, icalS
                               </span>
                             </div>
                             <button onClick={() => obrisiClana(c.id)}
-                              className="p-1.5 rounded-lg hover:bg-red-100 dark:hover:bg-red-900/30 text-slate-400 hover:text-red-500 transition-colors">
-                              <Trash2 size={13} />
+                              aria-label={`Ukloni ${c.email}`}
+                              className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-red-100 dark:hover:bg-red-900/30 text-slate-400 hover:text-red-500 transition-colors">
+                              <Trash2 size={13} aria-hidden="true" />
                             </button>
                           </div>
                         ))
@@ -413,8 +421,7 @@ export default function Header({ aktivnaStrana, tamniRezim, setTamniRezim, icalS
                               Otkaži
                             </button>
                             <button onClick={dodajClana}
-                              className="flex-1 py-1.5 text-xs font-semibold text-white rounded-lg hover:opacity-90 transition-opacity"
-                              style={{ backgroundColor: '#01696f' }}>
+                              className="flex-1 py-1.5 text-xs font-semibold text-white rounded-lg hover:opacity-90 transition-opacity bg-teal-600">
                               Dodaj
                             </button>
                           </div>
@@ -479,8 +486,7 @@ export default function Header({ aktivnaStrana, tamniRezim, setTamniRezim, icalS
                       ))}
                       <div className="pt-1 space-y-2">
                         <button onClick={sync} disabled={syncing}
-                          className="w-full py-2 text-sm font-semibold text-white rounded-xl hover:opacity-90 disabled:opacity-60 flex items-center justify-center gap-2 transition-all"
-                          style={{ backgroundColor: '#01696f' }}>
+                          className="w-full py-2 text-sm font-semibold text-white rounded-xl hover:opacity-90 disabled:opacity-60 flex items-center justify-center gap-2 transition-all bg-teal-600">
                           {syncing ? <><Loader size={14} className="animate-spin" /> Sinhronizujem...</> : <><RefreshCw size={14} /> Sinhronizuj sada</>}
                         </button>
                         {lastSync && !syncing && (

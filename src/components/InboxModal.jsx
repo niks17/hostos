@@ -304,8 +304,7 @@ export default function InboxModal({ detalji, apt, user, onClose, onEdit }) {
                   <button
                     onClick={submitForm}
                     disabled={sending}
-                    className="px-4 py-2.5 rounded-xl text-white font-bold text-sm active:scale-95 transition-all disabled:opacity-50"
-                    style={{ backgroundColor: '#01696f' }}
+                    className="px-4 py-2.5 rounded-xl text-white font-bold text-sm active:scale-95 transition-all disabled:opacity-50 bg-teal-600"
                   >
                     <Send size={15} />
                   </button>
@@ -338,8 +337,7 @@ export default function InboxModal({ detalji, apt, user, onClose, onEdit }) {
                 <p className="text-sm text-slate-400 mb-3">Dodaj kontakt broj da bi slao poruke</p>
                 <button
                   onClick={onEdit}
-                  className="px-4 py-2 text-sm font-semibold text-white rounded-xl"
-                  style={{ backgroundColor: '#01696f' }}
+                  className="px-4 py-2 text-sm font-semibold text-white rounded-xl bg-teal-600"
                 >
                   Dodaj kontakt
                 </button>

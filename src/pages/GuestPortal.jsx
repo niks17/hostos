@@ -129,7 +129,7 @@ function WifiRow({ label, value }) {
             flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold
             transition-all duration-300 flex-shrink-0
           `}
-          style={{ backgroundColor: copied ? '#10b981' : '#01696f', color: 'white' }}
+          style={{ backgroundColor: copied ? '#10b981' : 'var(--color-primary)', color: 'white' }}
         >
           {copied ? <><Check size={12} /> Kopirano</> : <><Copy size={12} /> Kopiraj</>}
         </div>
@@ -216,11 +216,10 @@ export default function GuestPortal({ token }) {
   }, [token])
 
   async function load() {
+    // RPC umesto direktnog upita: vraća samo guest-facing kolone za jedan
+    // apartman koji odgovara tokenu. Tokeni se ne mogu izlistati iz tabele.
     const { data, error } = await supabase
-      .from('apartmani')
-      .select('*')
-      .eq('guest_token', token)
-      .single()
+      .rpc('get_guest_portal', { p_token: token })
 
     if (!data || error) { setNotFound(true) }
     else { setApt(data) }

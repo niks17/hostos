@@ -1,7 +1,19 @@
 import React, { useState } from 'react'
-import { Bell, X, ChevronRight, CheckCheck } from 'lucide-react'
+import { Bell, X, ChevronRight, CheckCheck, Share } from 'lucide-react'
 import { useSmartNotifications } from '../hooks/useSmartNotifications'
 import { useAuth } from '../context/AuthContext'
+
+// ── Detekcija platforme ───────────────────────────────────────────────────────
+function isIOS() {
+  return /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream
+}
+function isPWA() {
+  return window.matchMedia('(display-mode: standalone)').matches ||
+    window.navigator.standalone === true
+}
+function notifSupported() {
+  return 'Notification' in window
+}
 
 const PRIORITET_CONFIG = {
   critical: { label: 'Kritično', dot: 'bg-red-500',    ring: 'ring-red-200 dark:ring-red-900',    bg: 'bg-red-50 dark:bg-red-900/20',    border: 'border-red-200 dark:border-red-800',    text: 'text-red-700 dark:text-red-300'    },
@@ -22,8 +34,9 @@ export default function NotificationBell({ apartmani = [], onNavigate }) {
   const [open, setOpen]             = useState(false)
   const [dismissed, setDismissed]   = useState(new Set())
   const [pushEnabled, setPushEnabled] = useState(
-    typeof window !== 'undefined' && typeof Notification !== 'undefined' && Notification.permission === 'granted'
+    typeof window !== 'undefined' && notifSupported() && Notification.permission === 'granted'
   )
+  const [showIOSGuide, setShowIOSGuide] = useState(false)
 
   const visible   = notifications.filter(n => !dismissed.has(n.id))
   const count     = visible.length
@@ -38,7 +51,17 @@ export default function NotificationBell({ apartmani = [], onNavigate }) {
   }
 
   async function enablePush() {
+    // iOS u Safari browseru — notifikacije rade samo kao PWA
+    if (isIOS() && !isPWA()) {
+      setShowIOSGuide(true)
+      return
+    }
     const granted = await requestBrowserPermission()
+    if (!granted && Notification.permission === 'denied') {
+      // korisnik je blokirao — ne možemo ponovo pitati
+      setShowIOSGuide('denied')
+      return
+    }
     setPushEnabled(granted)
   }
 
@@ -52,6 +75,8 @@ export default function NotificationBell({ apartmani = [], onNavigate }) {
       {/* ── Bell button ── */}
       <button
         onClick={() => setOpen(!open)}
+        aria-label={count > 0 ? `Obaveštenja (${count})` : 'Obaveštenja'}
+        aria-expanded={open}
         className={`
           relative p-2 rounded-xl transition-all duration-150 active:scale-90
           ${open
@@ -60,7 +85,7 @@ export default function NotificationBell({ apartmani = [], onNavigate }) {
           }
         `}
       >
-        <Bell size={19} className={count > 0 ? (hasCrit ? 'text-red-500' : 'text-amber-500') : ''} />
+        <Bell size={19} aria-hidden="true" className={count > 0 ? (hasCrit ? 'text-red-500' : 'text-amber-500') : ''} />
 
         {/* Badge */}
         {count > 0 && (
@@ -69,7 +94,7 @@ export default function NotificationBell({ apartmani = [], onNavigate }) {
             min-w-[18px] h-[18px] px-1
             rounded-full text-[10px] font-black text-white
             flex items-center justify-center
-            ${hasCrit ? 'bg-red-500 animate-bounce' : 'bg-amber-500'}
+            ${hasCrit ? 'bg-red-500 animate-pulse' : 'bg-amber-500'}
           `}>
             {count > 9 ? '9+' : count}
           </span>
@@ -130,7 +155,7 @@ export default function NotificationBell({ apartmani = [], onNavigate }) {
                     return (
                       <div
                         key={n.id}
-                        className={`px-4 py-3 ${pc.bg} border-l-2 ${pc.border} animate-fade-in group`}
+                        className={`px-4 py-3 ${pc.bg} border border-transparent ${pc.border} rounded-xl mx-2 mb-1 animate-fade-in group`}
                       >
                         <div className="flex items-start gap-3">
                           {/* Emoji icon */}
@@ -178,7 +203,7 @@ export default function NotificationBell({ apartmani = [], onNavigate }) {
             </div>
 
             {/* Footer — push notification opt-in */}
-            {!pushEnabled && (
+            {!pushEnabled && !showIOSGuide && (
               <div className="px-4 py-3 border-t border-slate-100 dark:border-slate-700 bg-slate-50 dark:bg-slate-700/50">
                 <div className="flex items-center justify-between gap-3">
                   <div>
@@ -187,12 +212,61 @@ export default function NotificationBell({ apartmani = [], onNavigate }) {
                   </div>
                   <button
                     onClick={enablePush}
-                    className="flex-shrink-0 px-3 py-1.5 text-xs font-bold text-white rounded-lg active:scale-95 transition-all"
-                    style={{ backgroundColor: '#01696f' }}
+                    className="flex-shrink-0 px-3 py-1.5 text-xs font-bold text-white rounded-lg active:scale-95 transition-all bg-teal-600"
                   >
                     Uključi
                   </button>
                 </div>
+              </div>
+            )}
+
+            {/* iOS vodič — dodaj na početni ekran */}
+            {showIOSGuide === true && (
+              <div className="px-4 py-3 border-t border-slate-100 dark:border-slate-700 bg-amber-50 dark:bg-amber-900/20">
+                <div className="flex items-start gap-2 mb-2">
+                  <span className="text-base leading-none mt-0.5">📱</span>
+                  <div>
+                    <p className="text-xs font-bold text-amber-800 dark:text-amber-300">
+                      iPhone zahteva PWA za notifikacije
+                    </p>
+                    <p className="text-[11px] text-amber-700 dark:text-amber-400 mt-0.5 leading-relaxed">
+                      Safari ne dozvoljava notifikacije u browseru. Dodaj HostOS na početni ekran:
+                    </p>
+                  </div>
+                </div>
+                <ol className="text-[11px] text-amber-700 dark:text-amber-400 space-y-1 ml-6 list-decimal">
+                  <li>Klikni <strong>Share</strong> dugme u Safariju <span className="text-base leading-none">⎙</span></li>
+                  <li>Izaberi <strong>"Add to Home Screen"</strong></li>
+                  <li>Otvori HostOS sa početnog ekrana</li>
+                  <li>Klikni ponovo "Uključi" ovde</li>
+                </ol>
+                <button
+                  onClick={() => setShowIOSGuide(false)}
+                  className="mt-2 text-[11px] font-semibold text-amber-600 dark:text-amber-400 underline"
+                >
+                  Zatvori
+                </button>
+              </div>
+            )}
+
+            {/* Blokirane notifikacije */}
+            {showIOSGuide === 'denied' && (
+              <div className="px-4 py-3 border-t border-slate-100 dark:border-slate-700 bg-red-50 dark:bg-red-900/20">
+                <div className="flex items-start gap-2">
+                  <span className="text-base leading-none mt-0.5">🔕</span>
+                  <div>
+                    <p className="text-xs font-bold text-red-700 dark:text-red-300">Notifikacije su blokirane</p>
+                    <p className="text-[11px] text-red-600 dark:text-red-400 mt-0.5 leading-relaxed">
+                      Idi u <strong>Podešavanja browsera → Notifikacije</strong> i dozvoli za ovaj sajt.
+                    </p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setShowIOSGuide(false)}
+                  className="mt-2 text-[11px] font-semibold text-red-500 underline"
+                >
+                  Zatvori
+                </button>
               </div>
             )}
           </div>

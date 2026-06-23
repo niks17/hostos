@@ -45,7 +45,7 @@ function formatElapsed(seconds) {
 }
 
 // ─── Konfeti čestica ──────────────────────────────────────────────────────────
-const CONFETTI_COLORS = ['#01696f','#10b981','#f59e0b','#3b82f6','#ec4899','#a78bfa','#f97316']
+const CONFETTI_COLORS = ['var(--color-primary)','#10b981','#f59e0b','#3b82f6','#ec4899','#a78bfa','#f97316']
 
 function ConfettiBurst() {
   const particles = Array.from({ length: 14 }, (_, i) => {
@@ -121,7 +121,7 @@ function ChecklistItem({ stavka, onToggle }) {
               : 'border-slate-300 dark:border-slate-600'
             }
           `}
-          style={stavka.zavrseno ? { backgroundColor: '#01696f', borderColor: '#01696f' } : {}}
+          style={stavka.zavrseno ? { backgroundColor: 'var(--color-primary)', borderColor: 'var(--color-primary)' } : {}}
         >
           {stavka.zavrseno && (
             <Check size={17} className="text-white" strokeWidth={3} />
@@ -144,7 +144,7 @@ function ChecklistItem({ stavka, onToggle }) {
 
       {/* Timestamp */}
       {stavka.ts && (
-        <span className="text-xs font-semibold flex-shrink-0 tabular-nums" style={{ color: '#01696f' }}>
+        <span className="text-xs font-semibold flex-shrink-0 tabular-nums text-teal-600">
           {stavka.ts}
         </span>
       )}
@@ -205,8 +205,7 @@ function CleanerView({ taskovi, apartmani, toggleStavka, rezervacije }) {
 
         {/* Big check */}
         <div className="relative mb-8">
-          <div className="w-28 h-28 rounded-full flex items-center justify-center animate-bounce-in shadow-2xl"
-            style={{ backgroundColor: '#01696f' }}>
+          <div className="w-28 h-28 rounded-full flex items-center justify-center animate-bounce-in shadow-2xl bg-teal-600">
             <Check size={56} className="text-white" strokeWidth={2.5} />
           </div>
         </div>
@@ -241,8 +240,7 @@ function CleanerView({ taskovi, apartmani, toggleStavka, rezervacije }) {
         {remaining.length > 0 ? (
           <button
             onClick={() => { setZavrsioId(null); setNapomena('') }}
-            className="px-8 py-4 text-white font-bold rounded-2xl shadow-lg active:scale-95 transition-transform text-lg"
-            style={{ backgroundColor: '#01696f' }}>
+            className="px-8 py-4 text-white font-bold rounded-2xl shadow-lg active:scale-95 transition-transform text-lg bg-teal-600">
             Sledeći zadatak →
           </button>
         ) : (
@@ -302,7 +300,7 @@ function CleanerView({ taskovi, apartmani, toggleStavka, rezervacije }) {
                   key={t.id}
                   onClick={() => setAktivniIdx(i)}
                   className={`flex-1 h-2 rounded-full transition-all duration-300 ${i === aktivniIdx ? 'opacity-100' : 'opacity-20'}`}
-                  style={{ backgroundColor: a?.boja || '#01696f' }}
+                  style={{ backgroundColor: a?.boja || 'var(--color-primary)' }}
                 />
               )
             })}
@@ -312,7 +310,7 @@ function CleanerView({ taskovi, apartmani, toggleStavka, rezervacije }) {
         {/* Apartment info */}
         <div className="flex items-start gap-4 mb-5">
           <div className="w-14 h-14 rounded-2xl flex items-center justify-center text-2xl flex-shrink-0"
-            style={{ backgroundColor: (apt?.boja || '#01696f') + '20' }}>
+            style={{ backgroundColor: (apt?.boja || 'var(--color-primary)') + '20' }}>
             🏠
           </div>
           <div className="flex-1 min-w-0">
@@ -354,12 +352,12 @@ function CleanerView({ taskovi, apartmani, toggleStavka, rezervacije }) {
             <span className="text-sm font-medium text-slate-500 dark:text-slate-400">
               {zavrsenoCount} od {task.stavke.length} završeno
             </span>
-            <span className="text-sm font-black tabular-nums" style={{ color: '#01696f' }}>{procenat}%</span>
+            <span className="text-sm font-black tabular-nums text-teal-600">{procenat}%</span>
           </div>
           <div className="h-3 bg-slate-100 dark:bg-slate-700 rounded-full overflow-hidden">
             <div
               className="h-full rounded-full transition-all duration-500 ease-out"
-              style={{ width: `${procenat}%`, backgroundColor: sveZavrseno ? '#10b981' : '#01696f' }}
+              style={{ width: `${procenat}%`, backgroundColor: sveZavrseno ? '#10b981' : 'var(--color-primary)' }}
             />
           </div>
         </div>
@@ -600,7 +598,7 @@ export default function CistacijeHub({ apartmani = [] }) {
                   : 'bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-600'
                 }
               `}
-              style={filterTab === tab.id ? { backgroundColor: '#01696f' } : {}}>
+              style={filterTab === tab.id ? { backgroundColor: 'var(--color-primary)' } : {}}>
               {tab.label}
               {tab.count > 0 && (
                 <span className={`text-[11px] font-bold px-1.5 py-0.5 rounded-full ${
@@ -614,8 +612,7 @@ export default function CistacijeHub({ apartmani = [] }) {
         </div>
         <button
           onClick={() => setNoviTask(true)}
-          className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-semibold text-white rounded-xl hover:opacity-90 transition-opacity flex-shrink-0 ml-2"
-          style={{ backgroundColor: '#01696f' }}>
+          className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-semibold text-white rounded-xl hover:opacity-90 transition-opacity flex-shrink-0 ml-2 bg-teal-600">
           <Plus size={15} /> Novi
         </button>
       </div>
@@ -662,7 +659,7 @@ export default function CistacijeHub({ apartmani = [] }) {
                     <div className="flex items-center gap-2">
                       <p className="font-bold text-slate-800 dark:text-white text-sm">{apt?.naziv || '—'}</p>
                       {isToday && (
-                        <span className="text-[10px] font-black px-1.5 py-0.5 rounded-full text-white" style={{ backgroundColor: '#01696f' }}>
+                        <span className="text-[10px] font-black px-1.5 py-0.5 rounded-full text-white bg-teal-600">
                           DANAS
                         </span>
                       )}
@@ -695,7 +692,7 @@ export default function CistacijeHub({ apartmani = [] }) {
                 </div>
                 <div className="h-1.5 bg-slate-100 dark:bg-slate-700 rounded-full overflow-hidden">
                   <div className="h-full rounded-full transition-all duration-500"
-                    style={{ width: `${procenat}%`, backgroundColor: task.status === 'zavrseno' ? '#10b981' : '#01696f' }} />
+                    style={{ width: `${procenat}%`, backgroundColor: task.status === 'zavrseno' ? '#10b981' : 'var(--color-primary)' }} />
                 </div>
               </div>
 
@@ -793,8 +790,7 @@ export default function CistacijeHub({ apartmani = [] }) {
                 Otkaži
               </button>
               <button onClick={sacuvajIzmenu}
-                className="flex-1 py-3 text-sm font-bold text-white rounded-xl hover:opacity-90 transition-all active:scale-95"
-                style={{ backgroundColor: '#01696f' }}>
+                className="flex-1 py-3 text-sm font-bold text-white rounded-xl hover:opacity-90 transition-all active:scale-95 bg-teal-600">
                 Sačuvaj
               </button>
             </div>
@@ -825,8 +821,7 @@ export default function CistacijeHub({ apartmani = [] }) {
               <button
                 onClick={dodajTask}
                 disabled={!forma.apartmanId || !forma.datum}
-                className="flex-1 py-3 text-sm font-bold text-white rounded-xl hover:opacity-90 transition-all active:scale-95 disabled:opacity-40"
-                style={{ backgroundColor: '#01696f' }}>
+                className="flex-1 py-3 text-sm font-bold text-white rounded-xl hover:opacity-90 transition-all active:scale-95 disabled:opacity-40 bg-teal-600">
                 Dodaj
               </button>
             </div>
