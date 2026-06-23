@@ -59,7 +59,7 @@ export function generateReport({ mesec, godina, transakcije, apartmani, rezervac
     { naziv: 'Ukupan prihod', iznos: prihod, boja: [16, 185, 129] },
     { naziv: 'Ukupni troskovi', iznos: troskovi, boja: [239, 68, 68] },
     { naziv: 'Neto zarada', iznos: neto, boja: neto >= 0 ? [1, 105, 111] : [239, 68, 68] },
-    { naziv: 'Borav. taksa', iznos: boravisnaTaksa, boja: [245, 158, 11] },
+    { naziv: 'Borav. taksa', iznos: boravisnaTaksa, boja: [245, 158, 11], valuta: 'RSD' },
   ]
 
   kpis.forEach((k, i) => {
@@ -73,7 +73,12 @@ export function generateReport({ mesec, godina, transakcije, apartmani, rezervac
     doc.setFontSize(14)
     doc.setFont('helvetica', 'bold')
     doc.setTextColor(...DARK)
-    doc.text(`€${k.iznos.toLocaleString('sr-RS')}`, x + kpiW / 2, y + 14, { align: 'center' })
+    doc.text(
+      k.valuta === 'RSD'
+        ? `${k.iznos.toLocaleString('sr-RS')} RSD`
+        : `€${k.iznos.toLocaleString('sr-RS')}`,
+      x + kpiW / 2, y + 14, { align: 'center' }
+    )
 
     doc.setFontSize(7)
     doc.setFont('helvetica', 'normal')
@@ -164,7 +169,7 @@ export function generateReport({ mesec, godina, transakcije, apartmani, rezervac
     doc.text('Boravišna taksa za period', 21, y + 8)
     doc.setFontSize(14)
     doc.setTextColor(245, 158, 11)
-    doc.text(`€${boravisnaTaksa.toLocaleString('sr-RS')}`, 21, y + 17)
+    doc.text(`${boravisnaTaksa.toLocaleString('sr-RS')} RSD`, 21, y + 17)
     doc.setFontSize(8)
     doc.setFont('helvetica', 'normal')
     doc.setTextColor(...GRAY)

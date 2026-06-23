@@ -644,7 +644,7 @@ const REPORTS = [
     icon: Receipt,
     color: '#f59e0b',
     bg: '#f59e0b12',
-    items: ['Lista svih gostiju', 'Broj noćenja × gostiju', 'Taksa 150 RSD/osobi/noći', 'Ukupna taksa za prijavu'],
+    items: ['Lista svih gostiju', 'Broj noćenja × gostiju', 'Taksa po osobi/noći (iz podešavanja)', 'Ukupna taksa za prijavu'],
     fn: generateTax,
   },
 ]
