@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import {
   FileText, TrendingUp, Home, Receipt,
   Download, Loader2, CheckCircle2, BarChart3,
@@ -6,7 +6,8 @@ import {
 } from 'lucide-react'
 import jsPDF from 'jspdf'
 import autoTable from 'jspdf-autotable'
-import { supabase, mapGost, punoIme, eturistaKompletan } from '../lib/supabase'
+import { supabase, mapGost, punoIme, eturistaKompletan, loadTaksaStopa, TAKSA_STOPA_DEFAULT } from '../lib/supabase'
+import { useAuth } from '../context/AuthContext'
 import { noci } from '../utils/calc'
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
@@ -332,8 +333,8 @@ function generateOccupancy(rezs, trans, apartmani, mesec, godina, aptFilter) {
       head: [['Gost', 'Apartman', 'Dolazak', 'Odlazak', 'Noci', '% meseca']],
       body: filtRez.map(r => {
         const apt  = apartmani.find(a => a.id === r.apartman_id)
-        const noci = noci(r.dolazak, r.odlazak)
-        return [s(r.gost), s(apt?.naziv||'—'), r.dolazak, r.odlazak, noci, `${Math.round(noci/daysInMonth*100)}%`]
+        const brNoci = noci(r.dolazak, r.odlazak)
+        return [s(r.gost), s(apt?.naziv||'—'), r.dolazak, r.odlazak, brNoci, `${Math.round(brNoci/daysInMonth*100)}%`]
       })
     })
     y = doc.lastAutoTable.finalY + 10
@@ -362,10 +363,10 @@ function generateOccupancy(rezs, trans, apartmani, mesec, godina, aptFilter) {
 // ═══════════════════════════════════════════════════════════════════════════════
 // 4. BORAVIŠNA TAKSA
 // ═══════════════════════════════════════════════════════════════════════════════
-function generateTax(rezs, trans, apartmani, mesec, godina, aptFilter) {
+function generateTax(rezs, trans, apartmani, mesec, godina, aptFilter, stopa = 150) {
   const doc = new jsPDF()
   const aptNaziv   = aptFilter === 'all' ? 'Svi apartmani' : (apartmani.find(a => a.id == aptFilter)?.naziv || '—')
-  const TAKSA      = 150 // RSD po osobi po noci
+  const TAKSA      = stopa // RSD po osobi po noci — iz podešavanja (baza)
   const filtRez    = rezs.filter(r => r.status !== 'otkazano')
 
   let y = pdfHeader(doc, 'Boravisna taksa', `${mesecNaziv(mesec)} ${godina}  |  ${aptNaziv}`)
@@ -400,9 +401,9 @@ function generateTax(rezs, trans, apartmani, mesec, godina, aptFilter) {
       head: [['Gost', 'Apartman', 'Dolazak', 'Odlazak', 'Noci', 'Gostiju', 'Taksa (RSD)']],
       body: filtRez.map(r => {
         const apt   = apartmani.find(a => a.id === r.apartman_id)
-        const noci  = noci(r.dolazak, r.odlazak)
+        const brNoci = noci(r.dolazak, r.odlazak)
         const gost  = r.br_gostiju || 1
-        return [s(r.gost), s(apt?.naziv||'—'), r.dolazak, r.odlazak, noci, gost, `${(noci*gost*TAKSA).toLocaleString()} RSD`]
+        return [s(r.gost), s(apt?.naziv||'—'), r.dolazak, r.odlazak, brNoci, gost, `${(brNoci*gost*TAKSA).toLocaleString()} RSD`]
       }),
       foot: [[{ content: 'UKUPNA TAKSA', colSpan: 6, styles: { fontStyle: 'bold', halign: 'right' } },
               { content: `${ukupnaTaksa.toLocaleString()} RSD`, styles: { fontStyle: 'bold' } }]],
@@ -652,10 +653,16 @@ const MESECI = Array.from({ length: 12 }, (_, i) => ({ value: i + 1, label: mese
 const GODINE = [2023, 2024, 2025, 2026]
 
 export default function Izvestaji({ apartmani = [] }) {
+  const { user } = useAuth()
   const now = new Date()
   const [mesec,     setMesec]     = useState(now.getMonth() + 1)
   const [godina,    setGodina]    = useState(now.getFullYear())
   const [aptFilter, setAptFilter] = useState('all')
+  const [stopa,     setStopa]     = useState(TAKSA_STOPA_DEFAULT)
+
+  useEffect(() => {
+    if (user?.id) loadTaksaStopa(user.id).then(setStopa)
+  }, [user?.id])
   const [loading,   setLoading]   = useState({})
   const [done,      setDone]      = useState({})
   // eTurista ima dva zasebna dugmeta (PDF + CSV)
@@ -693,7 +700,7 @@ export default function Izvestaji({ apartmani = [] }) {
     setDone(d => ({ ...d, [report.id]: false }))
     try {
       const { rezs, trans } = await fetchData()
-      report.fn(rezs, trans, apartmani, mesec, godina, aptFilter)
+      report.fn(rezs, trans, apartmani, mesec, godina, aptFilter, stopa)
       setDone(d => ({ ...d, [report.id]: true }))
       setTimeout(() => setDone(d => ({ ...d, [report.id]: false })), 3000)
     } catch (e) {

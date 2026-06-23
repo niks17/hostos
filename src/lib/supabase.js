@@ -96,6 +96,26 @@ export async function logActivity(userId, tip, opis, meta = {}) {
   }
 }
 
+// ── Podešavanja: taksa stopa (jedan izvor istine za sve ekrane) ──────────────
+export const TAKSA_STOPA_DEFAULT = 150
+
+export async function loadTaksaStopa(userId) {
+  if (!userId) return TAKSA_STOPA_DEFAULT
+  const { data } = await supabase
+    .from('podesavanja')
+    .select('taksa_stopa')
+    .eq('user_id', userId)
+    .maybeSingle()
+  return Number(data?.taksa_stopa ?? TAKSA_STOPA_DEFAULT)
+}
+
+export async function saveTaksaStopa(userId, stopa) {
+  return supabase.from('podesavanja').upsert(
+    { user_id: userId, taksa_stopa: stopa, updated_at: new Date().toISOString() },
+    { onConflict: 'user_id' }
+  )
+}
+
 // ── Activity tip config (used in both Dashboard and future views) ─────────────
 export const TIP_CONFIG = {
   cistenje:    { emoji: '✨', label: 'Čišćenje',       boja: '#8b5cf6' },

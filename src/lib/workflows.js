@@ -1,4 +1,5 @@
-import { supabase, logActivity } from './supabase'
+import { supabase, logActivity, loadTaksaStopa } from './supabase'
+import { noci } from '../utils/calc'
 
 // ─── Workflow definitions ────────────────────────────────────────────────────
 export const WORKFLOW_DEFS = [
@@ -42,11 +43,6 @@ export function loadWorkflowSettings() {
 
 export function saveWorkflowSettings(settings) {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(settings))
-}
-
-// ─── Helpers ─────────────────────────────────────────────────────────────────
-function noći(dolazak, odlazak) {
-  return Math.max(1, Math.round((new Date(odlazak) - new Date(dolazak)) / 86400000))
 }
 
 // ─── Workflow handlers ────────────────────────────────────────────────────────
@@ -101,9 +97,9 @@ async function runIncome({ rez, apt, userId }) {
 }
 
 async function runTouristTax({ rez, apt, userId }) {
-  const nights = noći(rez.dolazak, rez.odlazak)
+  const nights = noci(rez.dolazak, rez.odlazak)
   const guests = rez.brGostiju || 1
-  const rateRsd = 150
+  const rateRsd = await loadTaksaStopa(userId)   // ista stopa kao Finansije/Izveštaji
   const iznos = nights * guests * rateRsd
 
   const { error } = await supabase.from('transakcije').insert({

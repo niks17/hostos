@@ -4,7 +4,7 @@ import {
   FileText, CheckCircle2, Circle, Settings, Loader2, CalendarCheck
 } from 'lucide-react'
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Legend } from 'recharts'
-import { supabase, mapTransakcija, mapRezervacija } from '../lib/supabase'
+import { supabase, mapTransakcija, mapRezervacija, loadTaksaStopa, saveTaksaStopa, TAKSA_STOPA_DEFAULT } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
 import { haptic } from '../utils/haptics'
 import { generateReport } from '../utils/generateReport'
@@ -43,12 +43,9 @@ function CustomTooltip({ active, payload, label }) {
 //   ON taksa_status FOR ALL USING (auth.uid() = user_id);
 
 function BtTab({ rezervacije, apartmani, userId }) {
-  // stopa: korisnicko podesavanje, cuvamo u localStorage jer je to preference
-  // (nije finansijski zapis — samo mnozilac za kalkulaciju)
-  const [stopa,      setStopa]      = useState(() => {
-    try { return Number(localStorage.getItem(`hostos_taksa_stopa_${userId}`) || 150) }
-    catch { return 150 }
-  })
+  // stopa: čuva se u bazi (tabela podesavanja) da je Izveštaji i Finansije
+  // čitaju iz istog mesta — ranije localStorage pa su se mogli razići
+  const [stopa,      setStopa]      = useState(TAKSA_STOPA_DEFAULT)
   const [editStopa,  setEditStopa]  = useState(false)
 
   // placeni: mapa { "2026-05": { placeno: true, datum: "2026-05-30T..." } }
@@ -81,10 +78,15 @@ function BtTab({ rezervacije, apartmani, userId }) {
 
   useEffect(() => { loadStatuse() }, [loadStatuse])
 
-  // ── Sacuvaj stopu u localStorage ────────────────────────────────────────────
+  // ── Ucitaj stopu iz baze ─────────────────────────────────────────────────────
+  useEffect(() => {
+    if (userId) loadTaksaStopa(userId).then(setStopa)
+  }, [userId])
+
+  // ── Sacuvaj stopu u bazu (optimisticki) ──────────────────────────────────────
   function promeniStopu(novaStopa) {
     setStopa(novaStopa)
-    try { localStorage.setItem(`hostos_taksa_stopa_${userId}`, String(novaStopa)) } catch {}
+    if (userId) saveTaksaStopa(userId, novaStopa)
   }
 
   // ── Toggle placeno/neplaceno — UPSERT u bazu ────────────────────────────────
