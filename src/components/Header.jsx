@@ -7,6 +7,7 @@ import {
 import { useAuth } from '../context/AuthContext'
 import { supabase } from '../lib/supabase'
 import NotificationBell from './NotificationBell'
+import IcalGuide from './IcalGuide'
 
 const JEZICI = ['Srpski', 'English', 'Deutsch']
 const VALUTE = ['EUR (€)', 'RSD (din)', 'USD ($)']
@@ -440,6 +441,15 @@ export default function Header({ aktivnaStrana, tamniRezim, setTamniRezim, icalS
                       <p className="text-xs text-slate-400 dark:text-slate-500 leading-relaxed">
                         Nalepi iCal URL iz podešavanja svakog apartmana na Booking.com i Airbnb.
                       </p>
+                      <details className="group bg-slate-50 dark:bg-slate-700/30 rounded-xl">
+                        <summary className="cursor-pointer list-none px-3 py-2.5 text-xs font-semibold text-teal-600 dark:text-teal-400 flex items-center justify-between">
+                          Kako da nađem iCal link?
+                          <span className="text-slate-400 group-open:rotate-180 transition-transform">⌄</span>
+                        </summary>
+                        <div className="px-3 pb-3 pt-1">
+                          <IcalGuide />
+                        </div>
+                      </details>
                       {apartmani.length === 0 && (
                         <div className="p-3 bg-slate-50 dark:bg-slate-700/50 rounded-xl text-xs text-slate-400 text-center">
                           Najpre dodaj apartman u tabu <strong className="text-teal-600 dark:text-teal-400">Apartmani</strong>, pa će se ovde pojaviti polja za iCal URL.

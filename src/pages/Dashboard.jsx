@@ -12,6 +12,7 @@ import { supabase, mapRezervacija, TIP_CONFIG } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
 import { haptic } from '../utils/haptics'
 import { noci } from '../utils/calc'
+import IcalGuide from '../components/IcalGuide'
 
 // ─── Dynamic background by time of day ────────────────────────────────────────
 function getDobaGradient() {
@@ -153,7 +154,7 @@ function OnboardingScreen({ profile, onApartmanCreated, onNavigate }) {
                   <Plus size={22} className="text-teal-600" /><span className="text-xs font-bold text-slate-700 dark:text-slate-200">Unesi ručno</span>
                 </button>
                 <button onClick={() => setKorak(3)} className="flex flex-col items-center gap-2 p-4 rounded-xl border-2 border-slate-200 dark:border-slate-700">
-                  <Link size={22} className="text-slate-400" /><span className="text-xs font-bold text-slate-500 text-center">Poveži Booking</span>
+                  <Link size={22} className="text-slate-400" /><span className="text-xs font-bold text-slate-500 text-center">Poveži kalendar</span>
                 </button>
                 <button onClick={() => setKorak(3)} className="col-span-2 text-xs text-slate-400 py-1">Preskočim →</button>
               </div>
@@ -163,12 +164,12 @@ function OnboardingScreen({ profile, onApartmanCreated, onNavigate }) {
           <div className={`rounded-2xl border bg-white dark:bg-slate-800 overflow-hidden transition-all ${korak === 3 ? 'border-teal-300 dark:border-teal-700 shadow-lg' : 'border-slate-200 dark:border-slate-700 opacity-50'}`}>
             <div className="p-4 flex items-center gap-3">
               <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-black ${korak === 3 ? 'text-white' : 'text-slate-400 bg-slate-200 dark:bg-slate-700'}`} style={korak === 3 ? { backgroundColor: 'var(--color-primary)' } : {}}>3</div>
-              <div><p className="font-bold text-slate-800 dark:text-white">Poveži Booking.com</p><p className="text-xs text-slate-400">Automatski uvoz putem iCal linka</p></div>
+              <div><p className="font-bold text-slate-800 dark:text-white">Poveži kalendar</p><p className="text-xs text-slate-400">Booking ili Airbnb — automatski uvoz</p></div>
             </div>
             {korak === 3 && (
               <div className="px-4 pb-4 border-t border-slate-100 dark:border-slate-700 pt-4 space-y-3">
-                <div className="p-3 bg-blue-50 dark:bg-blue-900/20 rounded-xl text-xs text-blue-700 dark:text-blue-300"><strong>Kako?</strong> Booking.com → Extranet → Kalendar → iCal link</div>
-                <input value={icalUrl} onChange={e => setIcalUrl(e.target.value)} placeholder="https://admin.booking.com/hotel/..." className="w-full px-4 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 text-slate-800 dark:text-white" />
+                <IcalGuide />
+                <input value={icalUrl} onChange={e => setIcalUrl(e.target.value)} placeholder="Nalepi iCal link ovde..." className="w-full px-4 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 text-slate-800 dark:text-white" />
                 {error && <p className="text-xs text-red-500">{error}</p>}
                 <button onClick={sacuvajIcal} disabled={saving || !icalUrl.trim()} className="w-full py-3 rounded-xl text-white font-bold text-sm disabled:opacity-50 bg-teal-600">{saving ? 'Čuvam...' : 'Poveži →'}</button>
                 <button onClick={() => setKorak('done')} className="w-full text-xs text-slate-400 py-1">Preskočim →</button>
